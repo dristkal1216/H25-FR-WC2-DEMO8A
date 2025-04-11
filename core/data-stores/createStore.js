@@ -12,7 +12,6 @@ const __dirname = dirname(__filename);
 */
 export default function createStore(relativePath) {
   const fullPath = join(__dirname, '../../data', relativePath);
-
   const read = async () => {
     const data = await fs.readFile(fullPath, 'utf8');
     return JSON.parse(data);

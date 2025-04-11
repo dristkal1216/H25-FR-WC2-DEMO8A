@@ -15,26 +15,31 @@ const App = (() => {
         static modal;
         
         static HTTP_METHODS = {
-            POST: "POST",
-            GET: "GET",
-            PATCH: "PATCH",
-            DELETE: "DELETE"
+            POST: "POST", // CREATE
+            GET: "GET", // READ
+            PATCH: "PATCH", // UPDATE
+            DELETE: "DELETE" // DELETE
         }
 
         /**
          * @param {string} route
          * @param {"POST"|"GET"|"PATCH"|"DELETE"} method
          * @param {string|URLSearchParams|FormData} body
+         * @return {Object|null}
          */
         static async handleRequest(route, method = App.HTTP_METHODS.GET, body = null, pushState = true) {
             const options = {
                 method: `${method}`,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             };
+
             if (body instanceof URLSearchParams)
                 route += `?${body}`;
-            if (body !== null && method !== 'GET') 
+            if (body !== null && method !== 'GET'){
+                options.headers['Content-Type'] = 'application/json';
                 options.body = body;
+            }
+                
             const request = new Request(route, options);
             
             try {
@@ -44,7 +49,7 @@ const App = (() => {
                 }
                 let responseText = await response.text();
                 
-                // Process Response
+                // Process Response 
                 switch(true){
                     case route.includes('/accueil') && method === App.HTTP_METHODS.GET : 
                         App.mainContainer.innerHTML = responseText;
@@ -67,6 +72,7 @@ const App = (() => {
                 }
             } catch (error) {
                 App.showError(error.message);
+                return null;
             }
         }
 
@@ -89,7 +95,7 @@ const App = (() => {
         }
 
         /** @param {Item} item */
-        static creerTableRowForItem(item){
+        static creerTableRowForItem(item){   
             return `
                 <tr data-id=${item.id}>
                     <td style="max-width:35%" class="td-input" data-key="nom" data-input="text"> ${item.nom} </td>
@@ -101,7 +107,10 @@ const App = (() => {
             `;
         }
 
-        /** @returns {Object} */
+        /** 
+         * @param {HTMLElement} targetTableRow
+         * @returns {Object} 
+         */
         static getObjectFromTableRow(targetTableRow){
             let obj = {};
             const dataId = targetTableRow.dataset?.id ?? null;
@@ -109,7 +118,7 @@ const App = (() => {
             let tableRowData = targetTableRow.querySelectorAll('td[data-key]');
             tableRowData.forEach(elem => {
                 const key = elem.dataset.key;
-                const value = elem.querySelector('input, textarea').value;
+                const value = elem.querySelector('input, textarea')?.value ?? elem.value;
                 obj[key] = value;
             });
             return obj;
@@ -150,6 +159,10 @@ const App = (() => {
                         input = document.createElement("input");
                         input.type = inputType;
                     break;
+                    case "file":
+                        input = document.createElement("input");
+                        input.type = inputType;
+                    break;
                 }
 
                 input.value = currentValue;
@@ -159,97 +172,97 @@ const App = (() => {
             targetTableRow.dataset.oldValue = JSON.stringify(dataObj);
         }
 
-        /** 
-         * @param {string} tableFor 
-         * @param {HTMLElement} targetTableRow 
-         */
-        static handleTableCancel(tableFor, targetTableRow){
-            const oldValue = JSON.parse(targetTableRow.dataset.oldValue);
-            let tableRow;
-            switch(tableFor){
-                case "items":
-                    tableRow = this.creerTableRowForItem(oldValue);
-                break;
-            }
-            targetTableRow.outerHTML = tableRow;
-        }
+        // /** 
+        //  * @param {string} tableFor 
+        //  * @param {HTMLElement} targetTableRow 
+        //  */
+        // static handleTableCancel(tableFor, targetTableRow){
+        //     const oldValue = JSON.parse(targetTableRow.dataset.oldValue);
+        //     let tableRow;
+        //     switch(tableFor){
+        //         case "items":
+        //             tableRow = this.creerTableRowForItem(oldValue);
+        //         break;
+        //     }
+        //     targetTableRow.outerHTML = tableRow;
+        // }
 
-        /** 
-         * @param {string} tableFor 
-         * @param {HTMLElement} targetTableRow 
-         */
-        static async handleTableSave(tableFor, targetTableRow){
-            const dataId = targetTableRow.dataset.id;
-            let newValue = App.getObjectFromTableRow(targetTableRow);
-            let method = dataId ? 'PATCH' : 'POST';
-            try {
-                const response = await fetch(`/${tableFor}/${dataId}`, {
-                    method: `${method}`,
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(newValue)
-                });
+        // /** 
+        //  * @param {string} tableFor 
+        //  * @param {HTMLElement} targetTableRow 
+        //  */
+        // static async handleTableSave(tableFor, targetTableRow){
+        //     const dataId = targetTableRow.dataset.id;
+        //     let newValue = App.getObjectFromTableRow(targetTableRow);
+        //     let method = dataId ? 'PATCH' : 'POST';
+        //     try {
+        //         const response = await fetch(`/${tableFor}/${dataId}`, {
+        //             method: `${method}`,
+        //             headers: {
+        //                 'Content-Type': 'application/json'
+        //             },
+        //             body: JSON.stringify(newValue)
+        //         });
             
-                if (!response.ok) {
-                    throw new Error(`Error updating item: ${response.statusText}`);
-                }
+        //         if (!response.ok) {
+        //             throw new Error(`Error updating item: ${response.statusText}`);
+        //         }
             
-                const updatedItem = await response.json();
-                let tableRow;
-                switch(tableFor){
-                    case 'items':
-                        tableRow = App.creerTableRowForItem(updatedItem);
-                    break;
-                }
-                targetTableRow.outerHTML = tableRow;
-                console.log('Item updated successfully:', updatedItem);
-                // Optionally update your UI or application state here.
-            } catch (error) {
-                console.error('Error patching item:', error);
-            }
-        }
+        //         const updatedItem = await response.json();
+        //         let tableRow;
+        //         switch(tableFor){
+        //             case 'items':
+        //                 tableRow = App.creerTableRowForItem(updatedItem);
+        //             break;
+        //         }
+        //         targetTableRow.outerHTML = tableRow;
+        //         console.log('Item updated successfully:', updatedItem);
+        //         // Optionally update your UI or application state here.
+        //     } catch (error) {
+        //         console.error('Error patching item:', error);
+        //     }
+        // }
 
-        /** 
-         * @param {string} tableFor 
-         * @param {HTMLElement} targetTableRow 
-         */
-        static async handleTableDelete(tableFor, targetTableRow){
-            const dataId = targetTableRow.dataset.id;
-            let method = 'delete';
-            try {
-                const response = await fetch(`/${tableFor}/${dataId}`, {
-                    method: `${method}`,
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+        // /** 
+        //  * @param {string} tableFor 
+        //  * @param {HTMLElement} targetTableRow 
+        //  */
+        // static async handleTableDelete(tableFor, targetTableRow){
+        //     const dataId = targetTableRow.dataset.id;
+        //     let method = 'delete';
+        //     try {
+        //         const response = await fetch(`/${tableFor}/${dataId}`, {
+        //             method: `${method}`,
+        //             headers: {
+        //                 'Content-Type': 'application/json'
+        //             }
+        //         });
             
-                if (!response.ok) {
-                    throw new Error(`Error deleting item: ${response.statusText}`);
-                }
+        //         if (!response.ok) {
+        //             throw new Error(`Error deleting item: ${response.statusText}`);
+        //         }
             
-                const deletedItem = await response.json();
-                targetTableRow.remove();
-                console.log('Item deleted successfully:', deletedItem);
-                // Optionally update your UI or application state here.
-            } catch (error) {
-                console.error('Error deleting item:', error);
-            }
-        }
-
-        static handleTableBtn(){
-
-        }
+        //         const deletedItem = await response.json();
+        //         targetTableRow.remove();
+        //         console.log('Item deleted successfully:', deletedItem);
+        //         // Optionally update your UI or application state here.
+        //     } catch (error) {
+        //         console.error('Error deleting item:', error);
+        //     }
+        // }
 
         /** 
          * @param {HTMLElement} table  
          * @param {HTMLElement} target 
         */
-        static handleTableClick(table, target){
+        static async handleTableClick(table, target){
             const tableFor = table.dataset.tableFor;
             const targetClass = target.className;
             const targetTableRow = target.closest('tr');
+            let jsObj;
+            let method;
+            let route;
+            let response;
 
             if(targetClass.includes('btn')){
                 switch(true){
@@ -257,13 +270,49 @@ const App = (() => {
                         App.handleTableModify(tableFor, targetTableRow);
                     break;
                     case targetClass.includes('cancel'): 
-                        App.handleTableCancel(tableFor, targetTableRow);
+                        // App.handleTableCancel(tableFor, targetTableRow);
+                        const oldValue = JSON.parse(targetTableRow.dataset.oldValue);
+                        let tableRow;
+                        switch(tableFor){
+                            case "items":
+                                tableRow = this.creerTableRowForItem(oldValue);
+                            break;
+                        }
+                        targetTableRow.outerHTML = tableRow;
                     break;
                     case targetClass.includes('save'):
-                        App.handleTableSave(tableFor, targetTableRow);
+                        // App.handleTableSave(tableFor, targetTableRow);
+                        jsObj = App.getObjectFromTableRow(targetTableRow);
+                        route = `/${tableFor}`;
+                        if(jsObj.id){
+                            method = App.HTTP_METHODS.PATCH;
+                            route += `/${jsObj.id}`;
+                        }else{
+                            method = App.HTTP_METHODS.POST;
+                        }
+                        
+                        response = await App.handleRequest(route, method, JSON.stringify(jsObj), false);
+
+                        if(response){
+                            let tableRow;
+                            switch(tableFor){
+                                case 'items':
+                                    tableRow = App.creerTableRowForItem(response);
+                                break;
+                            }
+                            targetTableRow.outerHTML = tableRow;
+                        }
                     break;
                     case targetClass.includes('delete'): 
-                        App.handleTableDelete(tableFor, targetTableRow);
+                        // App.handleTableDelete(tableFor, targetTableRow);
+                        jsObj = App.getObjectFromTableRow(targetTableRow);
+                        route = `/${tableFor}/${jsObj.id}`;
+                        method = App.HTTP_METHODS.DELETE;
+
+                        response = await App.handleRequest(route, method, JSON.stringify(jsObj), false);
+                        if(response){
+                            targetTableRow.remove();
+                        }
                     break;
                 }
             }

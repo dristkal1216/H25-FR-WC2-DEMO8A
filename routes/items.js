@@ -7,11 +7,12 @@ const router = express.Router();
 
 router.get(['/', '/view', 'view/index'], async(req, res, next) => {    
     const items = await itemsStore.read();
-    const pageContent = new ItemsIndexView(items).render();
 
     if (req.get('X-Requested-With') === 'XMLHttpRequest') {
         return res.json(items);
     }
+    
+    const pageContent = new ItemsIndexView(items).render();
         
     const fullPage = new SharedLayoutView(pageContent).render();
     res.send(fullPage);
@@ -21,8 +22,9 @@ router.patch(['/:id', '/update/:id'], async(req,res,next) => {
     try {
         const id = parseInt(req.params.id);
         const patchData = req.body;
+        console.log("patchData", patchData);
         const items = await itemsStore.read();
-        const index = items.findIndex(item => item.id === id);
+        const index = items.findIndex(item => item.id == id);
         if (index === -1) {
             return res.status(404).json({ error: 'Item not found' });
         }
@@ -40,7 +42,7 @@ router.delete(['/:id', '/delete/:id'], async(req,res,next) => {
         const id = parseInt(req.params.id);
         const patchData = req.body;
         const items = await itemsStore.read();
-        const index = items.findIndex(item => item.id === id);
+        const index = items.findIndex(item => item.id == id);
         if (index === -1) {
             return res.status(404).json({ error: 'Item not found' });
         }

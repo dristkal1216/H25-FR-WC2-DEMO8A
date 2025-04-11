@@ -4,9 +4,6 @@ import headerView from './header.js';
 import footerView from './footer.js';
 
 class SharedLayoutView extends View {
-  /**
-   * The template accepts a content string that will be injected into the main container.
-   */
   static template = (content) => View.html`
     <!DOCTYPE html>
     <html lang="fr">

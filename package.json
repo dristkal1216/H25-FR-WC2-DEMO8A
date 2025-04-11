@@ -7,9 +7,9 @@
     "start": "nodemon server-app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "author": "Jocelyn Cloutier",
+  "license": "MIT",
+  "description": "Démonstration",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

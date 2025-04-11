@@ -1,1 +1,8 @@
-[]
+[
+  {
+    "id": 1,
+    "nom": "Épée courte",
+    "description": "Une épée. Courte. Très courte.",
+    "poids": 4
+  }
+]

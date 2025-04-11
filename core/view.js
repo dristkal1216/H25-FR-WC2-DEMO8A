@@ -22,17 +22,6 @@ class View {
     }
 
     /**
-     * Creation secure de fragment HTML
-     * @param {string} text - Le texte pour lequel échapper les séquences HTML
-    */
-    static escapeHTML(text) {
-        return text.replace(/[&<>"']/g, match => ({
-            '&': '&amp;', '<': '&lt;', '>': '&gt;',
-            '"': '&quot;', "'": '&#39;'
-        }[match]));
-    }
-
-    /**
      * Les Views qui utilisent un conteneur doivent avoir ce marqueur
      * afin que la méthode render place le contenu du template au bon endroit.
      * @type {string}
@@ -96,16 +85,6 @@ class View {
         return Array.isArray(this.data) 
             ? this.data.map(item => this.template(item)).join('')
             : this.template(this.data);     
-    }
-
-    escapeHTML(text) {
-        return text.replace(/[&<>"']/g, (match) => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#39;'
-        })[match]);
     }
 }
 

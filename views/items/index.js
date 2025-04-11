@@ -3,7 +3,7 @@ import Item from '#models/item.js';
 
 class ItemsIndexView extends View {
     static conteneur = View.html`
-        <table data-data-for="items">
+        <table data-table-for="items">
             <thead>
                 <tr>
                     <th style="width:35%"> Nom </th>
@@ -12,7 +12,7 @@ class ItemsIndexView extends View {
                 </tr>
             </thead>
             <tbody>
-                [[BODY]]
+                ${View.bodyMarker}
             </tbody>
         </table>
     `;
@@ -27,6 +27,7 @@ class ItemsIndexView extends View {
         </tr>
     `;
 
+    /** @param {Item[]} items */
     constructor(items){
         super(ItemsIndexView.template, items, ItemsIndexView.conteneur);
     }
