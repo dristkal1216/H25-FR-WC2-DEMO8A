@@ -1,0 +1,25 @@
+{
+  "name": "pleasure",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server-app.js",
+  "scripts": {
+    "start": "nodemon server-app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0"
+  },
+  "imports": {
+    "#core/*": "./core/*",
+    "#data/*": "./data/*",
+    "#models/*": "./models/*",
+    "#routes/*": "./routes/*",
+    "#views/*": "./views/*"
+  }
+}
