@@ -1,4 +1,4 @@
-import View from '#core/View.js';
+import View from '#core/view.js';
 
 class SharedFooterView extends View {
   static template = () => View.html`

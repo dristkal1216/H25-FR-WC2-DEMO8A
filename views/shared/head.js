@@ -1,7 +1,7 @@
-import View from '#core/View.js';
+import View from "#core/view.js";
 
 class SharedHeadView extends View {
-    static template = () => View.html`
+  static template = () => View.html`
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,9 +11,9 @@ class SharedHeadView extends View {
     </head>
     `;
 
-    constructor() {
-        super(SharedHeadView.template);
-    }
+  constructor() {
+    super(SharedHeadView.template);
+  }
 }
 
 export default new SharedHeadView();

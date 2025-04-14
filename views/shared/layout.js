@@ -1,4 +1,4 @@
-import View from '#core/View.js';
+import View from '#core/view.js';
 import headView from './head.js';
 import headerView from './header.js';
 import footerView from './footer.js';
