@@ -1,5 +1,5 @@
 import View from "#core/view.js";
-import Champion from "#models/Champion.js";
+import Champion from "#models/champion.js";
 
 class ChampionsIndexView extends View {
   static conteneur = View.html`
