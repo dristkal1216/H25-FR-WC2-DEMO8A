@@ -1,7 +1,7 @@
-import View from '#core/view.js';
-import headView from './head.js';
-import headerView from './header.js';
-import footerView from './footer.js';
+import View from "#core/view.js";
+import headView from "./head.js";
+import headerView from "./header.js";
+import footerView from "./footer.js";
 
 class SharedLayoutView extends View {
   static template = (content) => View.html`
@@ -10,7 +10,7 @@ class SharedLayoutView extends View {
     ${headView.render()}
     <body>
       ${headerView.render()}
-      <main id="main-container">
+      <main id="site-main-content" class="site-main-content">
         ${content}
       </main>
       ${footerView.render()}

@@ -6,7 +6,7 @@ body {
   align-items: center;
   justify-content: flex-start;
   width: 100%;
-  height: auto;
+  height: 80vh;
   background-color: rgba(20, 20, 20, 0.85);
   font-family: "Lato", sans-serif;
   color: #efefef;
@@ -228,7 +228,7 @@ body {
 
 /* -------------------- CONTENU PRINCIPAL -------------------- */
 
-#main-container {
+#site-main-content {
   align-self: center;
   margin: 0;
   width: 100%;
@@ -243,20 +243,20 @@ body {
   backdrop-filter: blur(8px);
   border-radius: 15px;
   box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.5);
-  text-align: -webkit-center;
+  text-align: center;
   animation: fadeIn 0.8s ease-in-out;
   border: 2px solid #ffcc00;
 }
 
 /* Effet d'apparition du contenu */
-#main-container.show {
+#site-main-content.show {
   transform: translateY(0);
   opacity: 1;
 }
 
 /* -------------------- TITRE PRINCIPAL -------------------- */
 
-#main-container-title {
+#site-main-content-title {
   text-align: center;
   font-weight: bolder;
   font-size: 28px;
@@ -271,7 +271,7 @@ body {
 
 /* -------------------- CONTAINER PRINCIPAL -------------------- */
 
-#main-container .container {
+#site-main-content .container {
   display: flex;
   flex-direction: row;
   justify-content: space-around;
@@ -366,9 +366,9 @@ body {
 .apropos-container {
   display: flex;
   flex-direction: column;
-  justify-content: center; /* Pour éviter que le titre soit coupé */
+  justify-content: flex-start; /* Pour éviter que le titre soit coupé */
   align-items: center;
-  height: auto; /* Limite la hauteur pour que ça ne dépasse pas */
+  height: 80vh; /* Limite la hauteur pour que ça ne dépasse pas */
   width: 90%;
   max-width: 900px;
   margin: auto;
@@ -377,7 +377,7 @@ body {
   backdrop-filter: blur(8px);
   border-radius: 15px;
   box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.5);
-  text-align: webkit-center;
+  text-align: center;
   animation: fadeIn 0.8s ease-in-out;
   border: 2px solid #ffcc00;
   overflow-y: auto; /* Active le scroll uniquement si nécessaire */
@@ -423,7 +423,7 @@ body {
   padding: 0;
   margin: 20px auto;
   max-width: 700px;
-  /* text-align: left; */
+  text-align: left;
 }
 
 .apropos-list li {
@@ -667,6 +667,7 @@ body {
   overflow-y: auto;
   border-right: 2px solid #ccc;
   height: 100%;
+  grid-auto-rows: min-content;
 }
 
 /* Each champion in the grid */

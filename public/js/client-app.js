@@ -14,6 +14,9 @@ const App = (() => {
     /** @type {HTMLElement} */
     static modal;
 
+    /**@type {[{}]} */
+    static champions;
+
     static HTTP_METHODS = {
       POST: "POST", // CREATE
       GET: "GET", // READ
@@ -47,23 +50,27 @@ const App = (() => {
       const request = new Request(route, options);
 
       try {
+        App.mainContainer.style = "";
+        App.mainContainer.className = "";
         const response = await fetch(request);
         if (!response.ok) {
           throw new Error(`Une erreur s'est produite: ${response.status}`);
         }
         let responseText = await response.text();
-        console.log(route, method, responseText);
         // Process Response
         switch (true) {
           case route.includes("/accueil") && method === App.HTTP_METHODS.GET:
+            App.mainContainer.className = "acceuil-container";
             App.mainContainer.innerHTML = responseText;
             history.pushState(null, "", route);
             break;
           case route.includes("/apropos") && method === App.HTTP_METHODS.GET:
+            App.mainContainer.className = "apropos-container";
             App.mainContainer.innerHTML = responseText;
             history.pushState(null, "", route);
             break;
           case route.includes("/contact") && method === App.HTTP_METHODS.GET:
+            App.mainContainer.className = "contact-container";
             App.mainContainer.innerHTML = responseText;
             history.pushState(null, "", route);
             break;
@@ -74,8 +81,11 @@ const App = (() => {
             history.pushState(null, "", route);
             break;
           case route.includes("/champion") && method === App.HTTP_METHODS.GET:
+            App.mainContainer.className = "site-main-container";
             let champions = JSON.parse(responseText);
+            App.champions = champions;
             let tableChampions = App.creerTableChampions(champions);
+            App.mainContainer.style = "display:flex";
             App.mainContainer.innerHTML = tableChampions;
             history.pushState(null, "", route);
             break;
@@ -101,32 +111,37 @@ const App = (() => {
      */
     static creerTableChampions(championArray) {
       return `
-      <section id="champions-index">
-        <div id="filter-search-bar">
-          <input type="text" id="search-bar" placeholder="Rechercher un champion..." />
-          <div id="filter-bar">
-            <button class="filter-btn" data-role="All">All</button>
-          </div>
-        </div>
-        <table data-table-for="Champions">
-          <thead>
-            <tr>
-              <th style="width:35%"> Nom </th>
-              <th style="width:35%"> Description </th>
-              <th style="width:20%"> HP </th>
-              <th style="width:5%"></th>
-              <th style="width:5%"></th>
-            </tr>
-          </thead>
-          <tbody>
-          ${championArray
-          .map((champion) =>
-            App.creerTableRowForChampion(champion)
-          )
+      <div id="champion-section">
+      <input type="text" id="search-bar" placeholder="Rechercher un champion..." />
+      <div id="filter-bar">
+        <button class="filter-btn" data-role="Tank">
+          <img src="../img/tank.svg" alt="Tank"></img>
+        </button>
+        <button class="filter-btn" data-role="Mage">
+          <img src="../img/mage.svg" alt="Mage"></img>
+        </button>
+        <button class="filter-btn" data-role="Assassin">
+          <img src="../img/assassin.svg" alt="Assassin"></img>
+        </button>
+        <button class="filter-btn" data-role="Support">
+          <img src="../img/support.svg" alt="Support"></img>
+        </button>
+        <button class="filter-btn" data-role="Marksman">
+          <img src="../img/marksman.svg" alt="Marksman"></img>
+        </button>
+        <button class="filter-btn" data-role="Fighter">
+          <img src="../img/Fighter.svg" alt="Fighter"></img>
+        </button>
+      </div>
+      <div id="champion-container">
+        ${championArray
+          .map((champion) => App.creerTableRowForChampion(champion))
           .join("")}
-          </tbody>
-        </table>
-      </section>
+      </div>
+    </div>
+    <div id="info-container">
+        <p>Sélectionnez un champion pour voir les détails !</p>
+    </div>
     `;
     }
 
@@ -137,27 +152,50 @@ const App = (() => {
      */
     static creerTableRowForChampion(champion) {
       return `
-        <h2>${champion.name} - ${champion.title}</h2>
-          <img src="https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${champion.id}_0.jpg" alt="${champion.name}">
-          <p>${champion.blurb}</p>
-          <div class="champion-info">
-            <strong>Info:</strong>
-            Attack: ${champion.info.attack} |
-            Defense: ${champion.info.defense} |
-            Magic: ${champion.info.magic} |
-            Difficulty: ${champion.info.difficulty}
-          </div>
-          <div class="champion-stats">
-            <p><strong>HP:</strong> ${champion.stats.hp} (+${champion.stats.hpperlevel}/lvl)</p>
-            <p><strong>Armor:</strong> ${champion.stats.armor} (+${champion.stats.armorperlevel}/lvl)</p>
-            <p><strong>Attack Damage:</strong> ${champion.stats.attackdamage}</p>
-          </div>
-          <div class="champion-tags">
-            <strong>Tags:</strong> ${champion.tags.join(', ')}
-          </div>
+       <div class="champion" data-champion-id="${champion.id}" data-roles="${champion.tags}">
+        <img src="https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${champion.id}_0.jpg" alt="${champion.name}"/>
+        <p>${champion.name}</p>
+      </div>
     `;
     }
 
+    static displayChampions(filterRole = "All", searchTerm = "") {
+      // Get the container element
+      const championsContainer = App.mainContainer.querySelector(
+        "#champion-container"
+      );
+
+      // On vide le container au début
+      championsContainer.innerHTML = "";
+
+      // On initialise une variable pour accumuler le HTML généré
+      let htmlRows = "";
+
+      // On parcourt chaque champion de App.champions.
+      // Si App.champions est déjà un tableau, Object.values() n'est pas nécessaire.
+      Object.values(App.champions).forEach((champion) => {
+        // Vérifier si le champion possède le rôle recherché
+
+        
+          if (champion.id.toLowerCase() == "fiddlesticks") {
+            champion.id = "FiddleSticks";
+          }
+
+        if (filterRole === "All" || champion.tags.includes(filterRole)) {
+          if (searchTerm !== "") {
+            // Vérifier si le nom du champion contient le terme de recherche
+            if (champion.id.toLowerCase().includes(searchTerm.toLowerCase())) {
+              htmlRows += App.creerTableRowForChampion(champion);
+            }
+          } else {
+            htmlRows += App.creerTableRowForChampion(champion);
+          }
+        }
+      });
+
+      // On assigne tout le HTML généré au container une seule fois.
+      championsContainer.innerHTML = htmlRows;
+    }
     /**
      * Extract a Champion object from the given table row.
      * @param {HTMLElement} targetTableRow
@@ -193,8 +231,8 @@ const App = (() => {
                     </thead>
                     <tbody>
                         ${itemArray
-          .map((item) => App.creerTableRowForItem(item))
-          .join("")}
+                          .map((item) => App.creerTableRowForItem(item))
+                          .join("")}
                     </tbody>
                 </table>
             `;
@@ -204,13 +242,15 @@ const App = (() => {
     static creerTableRowForItem(item) {
       return `
                 <tr data-id=${item.id}>
-                    <td style="max-width:35%" class="td-input" data-key="nom" data-input="text"> ${item.nom
-        } </td>
-                    <td style="max-width:35%" class="td-input" data-key="description" data-input="textarea"> ${item.description
-        } </td>
+                    <td style="max-width:35%" class="td-input" data-key="nom" data-input="text"> ${
+                      item.nom
+                    } </td>
+                    <td style="max-width:35%" class="td-input" data-key="description" data-input="textarea"> ${
+                      item.description
+                    } </td>
                     <td style="max-width:20%" class="td-input" data-key="poids" data-input="number" data-min="0" data-step="0.5"> ${Number(
-          item.poids
-        ).toFixed(1)} </td>
+                      item.poids
+                    ).toFixed(1)} </td>
                     <td style="max-width:5%" class="btn-inside"> <span class="btn-modify"> ✏️ </span> </td>
                     <td style="max-width:5%" class="btn-inside"> <span class="btn-delete"> 🗑️ </span> </td>
                 </tr>
@@ -475,7 +515,7 @@ const App = (() => {
     }
 
     // static showForbidden(page){
-    //     const mainContainer = document.getElementById("main-container");
+    //     const mainContainer = document.getElementById("site-main-content");
     //     mainContainer.innerHTML = `<h2>${page}</h2><p>Vous devez être enregistré et loggé pour accéder à ce contenu</p>`;
     // }
 
@@ -523,26 +563,49 @@ const App = (() => {
         if (table) App.handleTableClick(table, target);
       });
 
-      window.addEventListener("popstate", (event) => {
-        // console.log('Popstate!');
-        // console.log('URL:', document.location.href);
-        // console.log('Event State object:', event.state);
-        // console.log('History State object:', history.state);
-        // console.log('Location:', document.location);
-        // App.handleRequest(location.hash, false);
-      });
+      // App
+      //Searchbar
+      App.mainContainer.addEventListener("input", (event) => {
+        const searchBar = event.target;
+        const searchValue = searchBar.closest("input");
+        const btnActive = document.querySelector(".filter-btn.active");
 
-      // document.getElementById("explore-btn").addEventListener("click", () => {
-      //   let activeNav = document.querySelector(".nav-element.nav-active");
-      //   if (activeNav) activeNav.classList.remove("nav-active");
-      //   let navBtn = document.querySelector(".nav-element[value='3']");
-      //   if (navBtn) navBtn.classList.add("nav-active");
-      // });
+
+        if (searchValue.value != null && btnActive != undefined ) {
+          App.displayChampions(btnActive.dataset.role, searchValue.value);
+        } else if (searchValue.value != null) {
+          App.displayChampions(undefined, searchValue.value);
+        }
+      });
+      // FilterBar
+      App.mainContainer.addEventListener("click", (event) => {
+        let btn = event.target.closest(".filter-btn"); // Vérifie si un bouton est cliqué
+        if (!btn) return; // Ignore l'événement si ce n'est pas un bouton
+
+        let selectedRole = btn.dataset.role;
+        let activeBtn = document.querySelector(".filter-btn.active");
+        let searchBar = document.getElementById("search-bar");
+        let searchValue = searchBar.value;
+
+        // Si on reclique sur le bouton actif, on affiche "All"
+        if (activeBtn === btn) {
+          App.displayChampions(undefined,searchValue);
+          activeBtn.classList.remove("active"); // Désactive le bouton actif
+          return; // On arrête l'exécution ici
+        }
+
+        // Sinon, on applique le filtre normal
+        App.displayChampions(selectedRole,searchValue);
+
+        // Supprime l'ancienne classe "active" et l'ajoute au bouton sélectionné
+        if (activeBtn) activeBtn.classList.remove("active");
+        btn.classList.add("active");
+      });
     }
 
     static init() {
       console.log("Initialisation de l'App...");
-      App.mainContainer = document.getElementById("main-container");
+      App.mainContainer = document.getElementById("site-main-content");
       App.modal = document.getElementById("modal-message");
       // const route = location.hash ? location.hash : "/home/index";
       // App.handleRequest(route);
@@ -553,7 +616,7 @@ const App = (() => {
 
     static adjustMainContainer() {
       const header = document.getElementById("site-header");
-      const mainContainer = document.getElementById("main-container");
+      const mainContainer = document.getElementById("site-main-content");
       if (header && mainContainer) {
         const headerHeight = header.offsetHeight;
         mainContainer.style.marginTop = headerHeight + 16 + "px";
