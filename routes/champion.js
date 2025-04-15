@@ -7,15 +7,15 @@ const router = express.Router();
 
 
 
-router.get(['/', '/view', 'view/index'], async(req, res, next) => {    
+router.get(['/', '/view', 'view/index'], async (req, res, next) => {
   const champions = await championsStore.read();
 
   if (req.get('X-Requested-With') === 'XMLHttpRequest') {
-      return res.json(champions);
+    return res.json(champions);
   }
-  
+
   const pageContent = new ChampionsIndexView(champions).render();
-      
+
   const fullPage = new SharedLayoutView(pageContent).render();
   res.send(fullPage);
 });

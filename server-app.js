@@ -22,8 +22,8 @@ import routeApropos from "#routes/apropos.js";
 app.use("/apropos", routeApropos);
 import routeContact from "#routes/contact.js";
 app.use("/contact", routeContact);
-import routeChampions from "#routes/champions.js";
-app.use("/champion", routeChampions);
+import routeChampion from "#routes/champion.js";
+app.use("/champion", routeChampion);
 app.use((req, res, next) => {
   res.status(404).send("404 - Page Non Trouvé");
 });

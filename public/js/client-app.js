@@ -115,10 +115,10 @@ const App = (() => {
             </thead>
             <tbody>
                 ${championArray
-                  .map((champion) =>
-                    ChampionsIndexView.creerTableRowForChampion(champion)
-                  )
-                  .join("")}
+          .map((champion) =>
+            App.creerTableRowForChampion(champion)
+          )
+          .join("")}
             </tbody>
         </table>
     `;
@@ -134,9 +134,8 @@ const App = (() => {
         <tr data-id="${champion.id}" data-roles='${JSON.stringify(
         champion.tags
       )}'>
-            <td style="max-width:20%" class="td-input" data-key="name" data-input="text"> ${
-              champion.name
-            } 
+            <td style="max-width:20%" class="td-input" data-key="name" data-input="text"> ${champion.name
+        } 
         </tr>
     `;
     }
@@ -176,8 +175,8 @@ const App = (() => {
                     </thead>
                     <tbody>
                         ${itemArray
-                          .map((item) => App.creerTableRowForItem(item))
-                          .join("")}
+          .map((item) => App.creerTableRowForItem(item))
+          .join("")}
                     </tbody>
                 </table>
             `;
@@ -187,15 +186,13 @@ const App = (() => {
     static creerTableRowForItem(item) {
       return `
                 <tr data-id=${item.id}>
-                    <td style="max-width:35%" class="td-input" data-key="nom" data-input="text"> ${
-                      item.nom
-                    } </td>
-                    <td style="max-width:35%" class="td-input" data-key="description" data-input="textarea"> ${
-                      item.description
-                    } </td>
+                    <td style="max-width:35%" class="td-input" data-key="nom" data-input="text"> ${item.nom
+        } </td>
+                    <td style="max-width:35%" class="td-input" data-key="description" data-input="textarea"> ${item.description
+        } </td>
                     <td style="max-width:20%" class="td-input" data-key="poids" data-input="number" data-min="0" data-step="0.5"> ${Number(
-                      item.poids
-                    ).toFixed(1)} </td>
+          item.poids
+        ).toFixed(1)} </td>
                     <td style="max-width:5%" class="btn-inside"> <span class="btn-modify"> ✏️ </span> </td>
                     <td style="max-width:5%" class="btn-inside"> <span class="btn-delete"> 🗑️ </span> </td>
                 </tr>
