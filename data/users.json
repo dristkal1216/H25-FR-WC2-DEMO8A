@@ -1,15 +1,15 @@
 [
-    {
-      "id": 1,
-      "username": "laurie",
-      "password": "motdepasse",
-      "listChampions": []  
-    },
-    {
-      "id": 2,
-      "username": "alice",
-      "password": "123456",
-      "listChampions": []
-    }
-  ]
-  
+  {
+    "id": 1,
+    "username": "laurie",
+    "password": "motdepasse",
+    "listChampions": [],
+    "favourites": []
+  },
+  {
+    "id": 2,
+    "username": "alice",
+    "password": "123456",
+    "listChampions": []
+  }
+]

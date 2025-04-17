@@ -7,41 +7,11 @@
  * @property {number} poids - I
  */
 
+import { json } from "express/lib/response";
+
 // === favoriteService.js ===
-const FavoriteService = {
-  STORAGE_KEY: "favouriteChampions",
-  USER_KEY: "loggedinUser",
 
-  getAll() {
-    const arr = JSON.parse(localStorage.getItem(this.STORAGE_KEY));
-    return Array.isArray(arr) ? arr : [];
-  },
 
-  saveAll(list) {
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(list));
-    const user = JSON.parse(localStorage.getItem(this.USER_KEY));
-    if (user) {
-      user.favourites = list;
-      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-    }
-  },
-
-  add(champion) {
-    const list = this.getAll();
-    if (!list.find((c) => c.id === champion.id)) {
-      list.push(champion);
-      this.saveAll(list);
-    }
-  },
-
-  remove(id) {
-    this.saveAll(this.getAll().filter((c) => c.id !== id));
-  },
-
-  isFav(id) {
-    return this.getAll().some((c) => c.id === id);
-  },
-};
 
 const App = (() => {
   class App {
@@ -266,7 +236,7 @@ const App = (() => {
     
       // 2️⃣ Gestion du cas “introuvable”
       if (!champ) {
-        console.error(`Champion introuvable pour id=${id}`, App.champions);
+        console.error(`Champion introuvable pour id=${champ.id}`, App.champions);
         return;
       }
     
@@ -297,9 +267,10 @@ const App = (() => {
     
       document.getElementById("favourite-btn")
         .addEventListener("click", () => {
-          if (FavoriteService.isFav(champ.id)) {
-            FavoriteService.remove(champ.id);
+          if (FavoriteService.isFav(champ)) {
+            FavoriteService.remove(champ);
           } else {
+            
             FavoriteService.add(champ);
           }
           App.updateFavouriteList();
@@ -309,10 +280,11 @@ const App = (() => {
     
 
     // Met à jour la sidebar
-    static updateFavouriteList = () => {
+   static  updateFavouriteList = async () => {
       const ul = document.getElementById("favourite-list");
       ul.innerHTML = "";
-      let list = FavoriteService.getAll();
+      let list = await FavoriteService.getAll();
+      console.log(list);
       list.sort((a, b) => a.name.localeCompare(b.name));
       list.forEach((champ) => {
         let li = document.createElement("li");
@@ -499,3 +471,59 @@ const App = (() => {
 
   return App;
 })();
+
+const FavoriteService = {
+  STORAGE_KEY: "favouriteChampions",
+  USER_KEY:    "loggedinUser",
+
+  getUser: async () => {
+    const res = await fetch("/auth", { credentials: 'include' },);
+    if (!res.ok) return null;
+    const { user } = await res.json();
+
+    return user;
+  },
+
+  getAll: async () => {
+    const user = await FavoriteService.getUser();
+    return Array.isArray(user?.favourites) ? user.favourites : [];
+  },
+
+  saveAll: async (list) => {
+    localStorage.setItem(FavoriteService.STORAGE_KEY, JSON.stringify(list));
+    await fetch("/profil/favourites", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: 'include',
+      body: JSON.stringify({ favourites: list })
+    });
+  },
+
+  add: async (champion) => {
+    const champion = fetch('/champion', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: champion.id })
+    }).then(res => res.json()).then(data => {
+      return data;
+    });
+    const foundChampion = champion.find(c => c.id === champion.id);
+    console.log("list", champion);
+    if (list.some(c => c.id === champion.id)) return false;
+    const newList = [...list, champion];
+    console.log("newList", newList);
+    const test = await FavoriteService.saveAll(newList);
+    console.log("test", test);
+    return true;
+  },
+
+  remove: async (id) => {
+    const list = await FavoriteService.getAll();
+    await FavoriteService.saveAll(list.filter(c => c.id !== id));
+  },
+
+  isFav: async (id) => {
+    const list = await FavoriteService.getAll();
+    return list.some(c => c.id === id);
+  }
+};

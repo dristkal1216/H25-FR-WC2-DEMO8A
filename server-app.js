@@ -16,9 +16,11 @@ app.use(
     resave: false, // ne réécrit pas la session si elle n’a pas changé
     saveUninitialized: false, // ne sauve pas les sessions vides
     cookie: {
-      maxAge: 1000 * 60 * 60 * 24, // 1 jour
-      // secure: true,           // à activer si HTTPS en production
+      maxAge: 86400000,
+      secure: process.env.NODE_ENV === 'production',  // only true in prod
+      httpOnly: true,
     },
+    
   })
 );
 
@@ -48,6 +50,9 @@ app.use("/login", routeLogin);
 
 import routeProfil from "#routes/profil.js";
 app.use("/profil", routeProfil);
+
+import routeAuth from "#routes/auth.js";
+app.use("/auth", routeAuth);
 
 app.use((req, res, next) => {
   res.status(404).send("404 - Page Non Trouvé");
