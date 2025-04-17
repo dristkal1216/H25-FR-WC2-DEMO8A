@@ -1,1 +1,15 @@
-[{}]
+[
+    {
+      "id": 1,
+      "username": "laurie",
+      "password": "motdepasse",
+      "listChampions": []  
+    },
+    {
+      "id": 2,
+      "username": "alice",
+      "password": "123456",
+      "listChampions": []
+    }
+  ]
+  

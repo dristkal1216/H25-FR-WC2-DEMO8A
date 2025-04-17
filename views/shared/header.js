@@ -12,7 +12,6 @@ class SharedHeaderView extends View {
         <ul class="site-top-nav-main">
           <li data-url="/accueil" class="nav-element nav-active">Accueil</li>
           <li data-url="/apropos" class="nav-element">À Propos</li>
-          <li data-url="/items" class="nav-element">Items</li>
           <li data-url="/champion" class="nav-element">App</li>
           <li data-url="/contact" class="nav-element">Contact</li>
         </ul>

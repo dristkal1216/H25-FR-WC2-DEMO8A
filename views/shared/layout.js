@@ -2,6 +2,7 @@ import View from "#core/view.js";
 import headView from "./head.js";
 import headerView from "./header.js";
 import footerView from "./footer.js";
+import favouritelist from "./favouritelist.js";
 
 class SharedLayoutView extends View {
   static template = (content) => View.html`
@@ -10,6 +11,7 @@ class SharedLayoutView extends View {
     ${headView.render()}
     <body>
       ${headerView.render()}
+      ${favouritelist.render()}
       <main id="site-main-content" class="site-main-content">
         ${content}
       </main>

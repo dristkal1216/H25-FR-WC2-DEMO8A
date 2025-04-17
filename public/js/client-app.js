@@ -7,6 +7,42 @@
  * @property {number} poids - I
  */
 
+// === favoriteService.js ===
+const FavoriteService = {
+  STORAGE_KEY: "favouriteChampions",
+  USER_KEY: "loggedinUser",
+
+  getAll() {
+    const arr = JSON.parse(localStorage.getItem(this.STORAGE_KEY));
+    return Array.isArray(arr) ? arr : [];
+  },
+
+  saveAll(list) {
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(list));
+    const user = JSON.parse(localStorage.getItem(this.USER_KEY));
+    if (user) {
+      user.favourites = list;
+      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    }
+  },
+
+  add(champion) {
+    const list = this.getAll();
+    if (!list.find((c) => c.id === champion.id)) {
+      list.push(champion);
+      this.saveAll(list);
+    }
+  },
+
+  remove(id) {
+    this.saveAll(this.getAll().filter((c) => c.id !== id));
+  },
+
+  isFav(id) {
+    return this.getAll().some((c) => c.id === id);
+  },
+};
+
 const App = (() => {
   class App {
     /** @type {HTMLElement} */
@@ -74,6 +110,11 @@ const App = (() => {
             App.mainContainer.innerHTML = responseText;
             history.pushState(null, "", route);
             break;
+          case route.includes("/contact") && method === App.HTTP_METHODS.POST:
+            App.mainContainer.className = "contact-container";
+            App.mainContainer.innerHTML = responseText;
+            App.showSuccess("Votre message a été envoyé avec succès !");
+            history.pushState(null, "", route);
           case route.includes("/items") && method === App.HTTP_METHODS.GET:
             let items = JSON.parse(responseText);
             let tableItems = App.creerTableItems(items);
@@ -87,6 +128,29 @@ const App = (() => {
             let tableChampions = App.creerTableChampions(champions);
             App.mainContainer.style = "display:flex";
             App.mainContainer.innerHTML = tableChampions;
+            history.pushState(null, "", route);
+            break;
+          case route.includes("/login") && method === App.HTTP_METHODS.GET:
+            App.mainContainer.className = "login-container";
+            App.mainContainer.innerHTML = responseText;
+            history.pushState(null, "", route);
+            break;
+          case route.includes("/login") && method === App.HTTP_METHODS.POST:
+            App.mainContainer.className = "login-container";
+            App.mainContainer.innerHTML = responseText;
+            const user = JSON.parse(responseText);
+            if (user) {
+              localStorage.setItem("loggedinUser", JSON.stringify(user));
+              App.showSuccess("Vous êtes connecté !");
+              App.handleRequest("/home/index", App.HTTP_METHODS.GET, null, false);
+            } else {
+              App.showError("Nom d'utilisateur ou mot de passe incorrect.");
+            }
+            history.pushState(null, "", route);
+            break;
+          case route.includes("/profil"):
+            App.mainContainer.className = "profil-container";
+            App.mainContainer.innerHTML = responseText;
             history.pushState(null, "", route);
             break;
           case route.includes("/items") && method === App.HTTP_METHODS.POST:
@@ -176,10 +240,9 @@ const App = (() => {
       Object.values(App.champions).forEach((champion) => {
         // Vérifier si le champion possède le rôle recherché
 
-        
-          if (champion.id.toLowerCase() == "fiddlesticks") {
-            champion.id = "FiddleSticks";
-          }
+        if (champion.id.toLowerCase() == "fiddlesticks") {
+          champion.id = "FiddleSticks";
+        }
 
         if (filterRole === "All" || champion.tags.includes(filterRole)) {
           if (searchTerm !== "") {
@@ -196,293 +259,90 @@ const App = (() => {
       // On assigne tout le HTML généré au container une seule fois.
       championsContainer.innerHTML = htmlRows;
     }
-    /**
-     * Extract a Champion object from the given table row.
-     * @param {HTMLElement} targetTableRow
-     * @returns {Object} The champion data object
-     */
-    static getObjectFromTableRow(targetTableRow) {
-      let obj = {};
-      const dataId = targetTableRow.dataset?.id ?? null;
-      obj.id = dataId;
-      const tableRowData = targetTableRow.querySelectorAll("td[data-key]");
-      tableRowData.forEach((elem) => {
-        const key = elem.dataset.key;
-        // Get value from an input or textarea if present, otherwise use trimmed text.
-        const value =
-          elem.querySelector("input, textarea")?.value ?? elem.innerText.trim();
-        // Convert comma-separated tags back into an array
-        obj[key] =
-          key === "tags" ? value.split(",").map((tag) => tag.trim()) : value;
-      });
-      return obj;
-    }
 
-    /** @param {Item[]} itemArray */
-    static creerTableItems = (itemArray) => {
-      return `
-                <table data-table-for="items">
-                    <thead>
-                        <tr>
-                            <th style="width:35%"> Nom </th>
-                            <th style="width:35%"> Description </th>
-                            <th style="width:20%"> Poids </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${itemArray
-                          .map((item) => App.creerTableRowForItem(item))
-                          .join("")}
-                    </tbody>
-                </table>
-            `;
+    static displayChampionsInfo(id) {
+      // 1️⃣ Trouver le champion en castant les deux cotés en chaîne
+      const champ = Object.values(App.champions).find(c => String(c.id) === String(id));
+    
+      // 2️⃣ Gestion du cas “introuvable”
+      if (!champ) {
+        console.error(`Champion introuvable pour id=${id}`, App.champions);
+        return;
+      }
+    
+      // 3️⃣ Affichage des détails
+      const infoContainer = App.mainContainer.querySelector("#info-container");
+      const isFav = FavoriteService.isFav(champ.id);
+    
+      infoContainer.innerHTML = `
+        <div class="champion-card">
+          <img src="https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${champ.id}_0.jpg"
+               alt="${champ.name}" class="champion-splash" />
+          <h2>${champ.name}</h2>
+          <p><strong>Rôle :</strong> ${champ.tags.join(", ")}</p>
+          <p><em>${champ.title}</em></p>
+          <p>${champ.blurb}</p>
+          <button id="favourite-btn" class="${isFav ? 'favourite' : ''}">
+            ${isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
+          </button>
+          <button id="close-details">Fermer</button>
+        </div>
+      `;
+    
+      // 4️⃣ Événements sur les boutons
+      document.getElementById("close-details")
+        .addEventListener("click", () => {
+          infoContainer.innerHTML = `<p>Sélectionnez un champion pour voir les détails !</p>`;
+        });
+    
+      document.getElementById("favourite-btn")
+        .addEventListener("click", () => {
+          if (FavoriteService.isFav(champ.id)) {
+            FavoriteService.remove(champ.id);
+          } else {
+            FavoriteService.add(champ);
+          }
+          App.updateFavouriteList();
+          App.displayChampionsInfo(champ.id);  // rafraîchir l’état du bouton
+        });
+    }
+    
+
+    // Met à jour la sidebar
+    static updateFavouriteList = () => {
+      const ul = document.getElementById("favourite-list");
+      ul.innerHTML = "";
+      let list = FavoriteService.getAll();
+      list.sort((a, b) => a.name.localeCompare(b.name));
+      list.forEach((champ) => {
+        let li = document.createElement("li");
+        li.className = "favourite-item";
+        li.dataset.championId = champ.id;
+  
+        let img = document.createElement("img");
+        img.src = `https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${champ.id}_0.jpg`;
+        img.alt = champ.name;
+  
+        let span = document.createElement("span");
+        span.textContent = champ.name;
+  
+        li.appendChild(img);
+        li.appendChild(span);
+        // clic pour afficher détails
+        li.addEventListener("click", () => App.displayChampionsInfo(champ.id));
+        li.appendChild(img);
+        ul.appendChild(li);
+      });
     };
 
-    /** @param {Item} item */
-    static creerTableRowForItem(item) {
-      return `
-                <tr data-id=${item.id}>
-                    <td style="max-width:35%" class="td-input" data-key="nom" data-input="text"> ${
-                      item.nom
-                    } </td>
-                    <td style="max-width:35%" class="td-input" data-key="description" data-input="textarea"> ${
-                      item.description
-                    } </td>
-                    <td style="max-width:20%" class="td-input" data-key="poids" data-input="number" data-min="0" data-step="0.5"> ${Number(
-                      item.poids
-                    ).toFixed(1)} </td>
-                    <td style="max-width:5%" class="btn-inside"> <span class="btn-modify"> ✏️ </span> </td>
-                    <td style="max-width:5%" class="btn-inside"> <span class="btn-delete"> 🗑️ </span> </td>
-                </tr>
-            `;
-    }
-
-    // /**
-    //  * @param {HTMLElement} targetTableRow
-    //  * @returns {Object}
-    //  */
-    // static getObjectFromTableRow(targetTableRow){
-    //     let obj = {};
-    //     const dataId = targetTableRow.dataset?.id ?? null;
-    //     obj.id = dataId;
-    //     let tableRowData = targetTableRow.querySelectorAll('td[data-key]');
-    //     tableRowData.forEach(elem => {
-    //         const key = elem.dataset.key;
-    //         const value = elem.querySelector('input, textarea')?.value ?? elem.value;
-    //         obj[key] = value;
-    //     });
-    //     return obj;
-    // }
-
-    /**
-     * @param {string} tableFor
-     * @param {HTMLElement} targetTableRow
-     */
-    static handleTableModify(tableFor, targetTableRow) {
-      const btnModify = targetTableRow.querySelector(".btn-modify");
-      const btnDelete = targetTableRow.querySelector(".btn-delete");
-      btnModify.className = btnModify.className.replace(
-        "btn-modify",
-        "btn-cancel"
-      );
-      btnModify.textContent = "❌";
-      btnDelete.className = btnDelete.className.replace(
-        "btn-delete",
-        "btn-save"
-      );
-      btnDelete.textContent = "💾";
-
-      const dataId = targetTableRow.dataset.id;
-      const dataElem = targetTableRow.querySelectorAll("td[data-key]");
-      let dataObj = {};
-      dataObj.id = dataId;
-      dataElem.forEach((elem) => {
-        const currentValue = elem.textContent.trim();
-        dataObj[elem.dataset.key] = currentValue;
-        const inputType = elem.dataset.input;
-        let input;
-        switch (inputType) {
-          case "text":
-            input = document.createElement("input");
-            input.type = inputType;
-            break;
-          case "textarea":
-            input = document.createElement("textarea");
-            input.style.resize = "vertical";
-            input.style.maxHeight = "20vh";
-            break;
-          case "number":
-            input = document.createElement("input");
-            input.type = inputType;
-            break;
-          case "file":
-            input = document.createElement("input");
-            input.type = inputType;
-            break;
-        }
-
-        input.value = currentValue;
-        elem.textContent = "";
-        elem.appendChild(input);
-      });
-      targetTableRow.dataset.oldValue = JSON.stringify(dataObj);
-    }
-
-    // /**
-    //  * @param {string} tableFor
-    //  * @param {HTMLElement} targetTableRow
-    //  */
-    // static handleTableCancel(tableFor, targetTableRow){
-    //     const oldValue = JSON.parse(targetTableRow.dataset.oldValue);
-    //     let tableRow;
-    //     switch(tableFor){
-    //         case "items":
-    //             tableRow = this.creerTableRowForItem(oldValue);
-    //         break;
-    //     }
-    //     targetTableRow.outerHTML = tableRow;
-    // }
-
-    // /**
-    //  * @param {string} tableFor
-    //  * @param {HTMLElement} targetTableRow
-    //  */
-    // static async handleTableSave(tableFor, targetTableRow){
-    //     const dataId = targetTableRow.dataset.id;
-    //     let newValue = App.getObjectFromTableRow(targetTableRow);
-    //     let method = dataId ? 'PATCH' : 'POST';
-    //     try {
-    //         const response = await fetch(`/${tableFor}/${dataId}`, {
-    //             method: `${method}`,
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: JSON.stringify(newValue)
-    //         });
-
-    //         if (!response.ok) {
-    //             throw new Error(`Error updating item: ${response.statusText}`);
-    //         }
-
-    //         const updatedItem = await response.json();
-    //         let tableRow;
-    //         switch(tableFor){
-    //             case 'items':
-    //                 tableRow = App.creerTableRowForItem(updatedItem);
-    //             break;
-    //         }
-    //         targetTableRow.outerHTML = tableRow;
-    //         console.log('Item updated successfully:', updatedItem);
-    //         // Optionally update your UI or application state here.
-    //     } catch (error) {
-    //         console.error('Error patching item:', error);
-    //     }
-    // }
-
-    // /**
-    //  * @param {string} tableFor
-    //  * @param {HTMLElement} targetTableRow
-    //  */
-    // static async handleTableDelete(tableFor, targetTableRow){
-    //     const dataId = targetTableRow.dataset.id;
-    //     let method = 'delete';
-    //     try {
-    //         const response = await fetch(`/${tableFor}/${dataId}`, {
-    //             method: `${method}`,
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             }
-    //         });
-
-    //         if (!response.ok) {
-    //             throw new Error(`Error deleting item: ${response.statusText}`);
-    //         }
-
-    //         const deletedItem = await response.json();
-    //         targetTableRow.remove();
-    //         console.log('Item deleted successfully:', deletedItem);
-    //         // Optionally update your UI or application state here.
-    //     } catch (error) {
-    //         console.error('Error deleting item:', error);
-    //     }
-    // }
-
-    /**
-     * @param {HTMLElement} table
-     * @param {HTMLElement} target
-     */
-    static async handleTableClick(table, target) {
-      const tableFor = table.dataset.tableFor;
-      const targetClass = target.className;
-      const targetTableRow = target.closest("tr");
-      let jsObj;
-      let method;
-      let route;
-      let response;
-
-      if (targetClass.includes("btn")) {
-        switch (true) {
-          case targetClass.includes("modify"):
-            App.handleTableModify(tableFor, targetTableRow);
-            break;
-          case targetClass.includes("cancel"):
-            // App.handleTableCancel(tableFor, targetTableRow);
-            const oldValue = JSON.parse(targetTableRow.dataset.oldValue);
-            let tableRow;
-            switch (tableFor) {
-              case "items":
-                tableRow = this.creerTableRowForItem(oldValue);
-                break;
-            }
-            targetTableRow.outerHTML = tableRow;
-            break;
-          case targetClass.includes("save"):
-            // App.handleTableSave(tableFor, targetTableRow);
-            jsObj = App.getObjectFromTableRow(targetTableRow);
-            route = `/${tableFor}`;
-            if (jsObj.id) {
-              method = App.HTTP_METHODS.PATCH;
-              route += `/${jsObj.id}`;
-            } else {
-              method = App.HTTP_METHODS.POST;
-            }
-
-            response = await App.handleRequest(
-              route,
-              method,
-              JSON.stringify(jsObj),
-              false
-            );
-
-            if (response) {
-              let tableRow;
-              switch (tableFor) {
-                case "items":
-                  tableRow = App.creerTableRowForItem(response);
-                  break;
-              }
-              targetTableRow.outerHTML = tableRow;
-            }
-            break;
-          case targetClass.includes("delete"):
-            // App.handleTableDelete(tableFor, targetTableRow);
-            jsObj = App.getObjectFromTableRow(targetTableRow);
-            route = `/${tableFor}/${jsObj.id}`;
-            method = App.HTTP_METHODS.DELETE;
-
-            response = await App.handleRequest(
-              route,
-              method,
-              JSON.stringify(jsObj),
-              false
-            );
-            if (response) {
-              targetTableRow.remove();
-            }
-            break;
-        }
-      }
-    }
+    // Trie A‑Z / Z‑A
+    static toggleSort = () => {
+      const btn = document.getElementById("tri-button");
+      let asc = btn.dataset.asc !== "false";
+      btn.dataset.asc = !asc;
+      btn.textContent = asc ? "Trier Z‑A" : "Trier A‑Z";
+      App.updateFavouriteList();
+    };
 
     static toggleModal = (modal) => modal?.classList?.toggle("show");
 
@@ -570,8 +430,7 @@ const App = (() => {
         const searchValue = searchBar.closest("input");
         const btnActive = document.querySelector(".filter-btn.active");
 
-
-        if (searchValue.value != null && btnActive != undefined ) {
+        if (searchValue.value != null && btnActive != undefined) {
           App.displayChampions(btnActive.dataset.role, searchValue.value);
         } else if (searchValue.value != null) {
           App.displayChampions(undefined, searchValue.value);
@@ -589,17 +448,29 @@ const App = (() => {
 
         // Si on reclique sur le bouton actif, on affiche "All"
         if (activeBtn === btn) {
-          App.displayChampions(undefined,searchValue);
+          App.displayChampions(undefined, searchValue);
           activeBtn.classList.remove("active"); // Désactive le bouton actif
           return; // On arrête l'exécution ici
         }
 
         // Sinon, on applique le filtre normal
-        App.displayChampions(selectedRole,searchValue);
+        App.displayChampions(selectedRole, searchValue);
 
         // Supprime l'ancienne classe "active" et l'ajoute au bouton sélectionné
         if (activeBtn) activeBtn.classList.remove("active");
         btn.classList.add("active");
+      });
+
+      // InfoContainer Click
+      App.mainContainer.addEventListener("click", (event) => {
+        const el = event.target.closest(".champion");
+        if (!el) return;
+        App.displayChampionsInfo(el.dataset.championId);
+      });
+
+      // Tri
+      App.mainContainer.addEventListener("click", (e) => {
+        if (e.target.id === "tri-button") App.toggleSort();
       });
     }
 
