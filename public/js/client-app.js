@@ -7,7 +7,6 @@
  * @property {number} poids - I
  */
 
-import { json } from "express/lib/response";
 
 // === favoriteService.js ===
 
@@ -29,6 +28,17 @@ const App = (() => {
       PATCH: "PATCH", // UPDATE
       DELETE: "DELETE", // DELETE
     };
+
+    static activeNav(id="Accueil") {
+      const nav = document.querySelectorAll("#site-top-nav > ul > li");
+      nav.forEach((li) => {
+        if (li.id === id) {
+          li.classList.add("nav-active");
+        } else {
+          li.classList.remove("nav-active");
+        }
+      });
+    }
 
     /**
      * @param {string} route
@@ -58,6 +68,9 @@ const App = (() => {
       try {
         App.mainContainer.style = "";
         App.mainContainer.className = "";
+
+        App.activeNav();
+        
         const response = await fetch(request);
         if (!response.ok) {
           throw new Error(`Une erreur s'est produite: ${response.status}`);
@@ -73,16 +86,19 @@ const App = (() => {
           case route.includes("/apropos") && method === App.HTTP_METHODS.GET:
             App.mainContainer.className = "apropos-container";
             App.mainContainer.innerHTML = responseText;
+            App.activeNav("Apropos");
             history.pushState(null, "", route);
             break;
           case route.includes("/contact") && method === App.HTTP_METHODS.GET:
             App.mainContainer.className = "contact-container";
             App.mainContainer.innerHTML = responseText;
+            App.activeNav("Contact");
             history.pushState(null, "", route);
             break;
           case route.includes("/contact") && method === App.HTTP_METHODS.POST:
             App.mainContainer.className = "contact-container";
             App.mainContainer.innerHTML = responseText;
+            App.activeNav("Contact");
             App.showSuccess("Votre message a été envoyé avec succès !");
             history.pushState(null, "", route);
           case route.includes("/items") && method === App.HTTP_METHODS.GET:
@@ -98,14 +114,18 @@ const App = (() => {
             let tableChampions = App.creerTableChampions(champions);
             App.mainContainer.style = "display:flex";
             App.mainContainer.innerHTML = tableChampions;
+            FavoriteService.getAll()
+            App.updateFavouriteList();
+            App.activeNav("Champion");
             history.pushState(null, "", route);
             break;
           case route.includes("/login") && method === App.HTTP_METHODS.GET:
             App.mainContainer.className = "login-container";
             App.mainContainer.innerHTML = responseText;
-            history.pushState(null, "", route);
+            App.activeNav("Login");
+            history.pushState(null, "", route); 
             break;
-          case route.includes("/login") && method === App.HTTP_METHODS.POST:
+          case route.includes("/auth") && method === App.HTTP_METHODS.PUT:
             App.mainContainer.className = "login-container";
             App.mainContainer.innerHTML = responseText;
             const user = JSON.parse(responseText);
@@ -122,6 +142,7 @@ const App = (() => {
             App.mainContainer.className = "profil-container";
             App.mainContainer.innerHTML = responseText;
             history.pushState(null, "", route);
+            App.activeNav("Login");
             break;
           case route.includes("/items") && method === App.HTTP_METHODS.POST:
           case route.includes("/items") && method === App.HTTP_METHODS.PATCH:
@@ -185,6 +206,13 @@ const App = (() => {
      * @returns {string} HTML string for the table row
      */
     static creerTableRowForChampion(champion) {
+
+
+      if(champion.id == "Fiddlesticks") {
+
+        champion.id = "FiddleSticks";
+      }
+
       return `
        <div class="champion" data-champion-id="${champion.id}" data-roles="${champion.tags}">
         <img src="https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${champion.id}_0.jpg" alt="${champion.name}"/>
@@ -199,6 +227,10 @@ const App = (() => {
         "#champion-container"
       );
 
+      if (!championsContainer) {
+        return;
+      }
+
       // On vide le container au début
       championsContainer.innerHTML = "";
 
@@ -210,14 +242,15 @@ const App = (() => {
       Object.values(App.champions).forEach((champion) => {
         // Vérifier si le champion possède le rôle recherché
 
-        if (champion.id.toLowerCase() == "fiddlesticks") {
-          champion.id = "FiddleSticks";
-        }
-
         if (filterRole === "All" || champion.tags.includes(filterRole)) {
           if (searchTerm !== "") {
             // Vérifier si le nom du champion contient le terme de recherche
             if (champion.id.toLowerCase().includes(searchTerm.toLowerCase())) {
+              if (champion.id == "Fiddlesticks") {
+                champion.id = "FiddleSticks";
+                console.log(champion.id);
+              }
+
               htmlRows += App.creerTableRowForChampion(champion);
             }
           } else {
@@ -230,7 +263,7 @@ const App = (() => {
       championsContainer.innerHTML = htmlRows;
     }
 
-    static displayChampionsInfo(id) {
+    static async displayChampionsInfo(id) {
       // 1️⃣ Trouver le champion en castant les deux cotés en chaîne
       const champ = Object.values(App.champions).find(c => String(c.id) === String(id));
     
@@ -242,7 +275,7 @@ const App = (() => {
     
       // 3️⃣ Affichage des détails
       const infoContainer = App.mainContainer.querySelector("#info-container");
-      const isFav = FavoriteService.isFav(champ.id);
+      const isFav = await FavoriteService.isFav(champ.id);
     
       infoContainer.innerHTML = `
         <div class="champion-card">
@@ -265,13 +298,16 @@ const App = (() => {
           infoContainer.innerHTML = `<p>Sélectionnez un champion pour voir les détails !</p>`;
         });
     
-      document.getElementById("favourite-btn")
-        .addEventListener("click", () => {
-          if (FavoriteService.isFav(champ)) {
-            FavoriteService.remove(champ);
+       document.getElementById("favourite-btn")
+        .addEventListener("click", async () => {
+          const isFav = await FavoriteService.isFav(champ.id);
+          if (isFav) {
+            await FavoriteService.remove(champ);
+            console.log("Champion retiré des favoris !");
           } else {
             
-            FavoriteService.add(champ);
+            await FavoriteService.add(champ);
+            console.log("Champion ajouté aux favoris !");
           }
           App.updateFavouriteList();
           App.displayChampionsInfo(champ.id);  // rafraîchir l’état du bouton
@@ -486,44 +522,53 @@ const FavoriteService = {
 
   getAll: async () => {
     const user = await FavoriteService.getUser();
-    return Array.isArray(user?.favourites) ? user.favourites : [];
+    return await user?.favourites || [];
+
   },
 
-  saveAll: async (list) => {
-    localStorage.setItem(FavoriteService.STORAGE_KEY, JSON.stringify(list));
-    await fetch("/profil/favourites", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: 'include',
-      body: JSON.stringify({ favourites: list })
-    });
-  },
-
-  add: async (champion) => {
-    const champion = fetch('/champion', {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: champion.id })
-    }).then(res => res.json()).then(data => {
-      return data;
-    });
-    const foundChampion = champion.find(c => c.id === champion.id);
-    console.log("list", champion);
-    if (list.some(c => c.id === champion.id)) return false;
-    const newList = [...list, champion];
-    console.log("newList", newList);
-    const test = await FavoriteService.saveAll(newList);
-    console.log("test", test);
+  add: async (champ) => {
+    // ① Call your new POST /profil/favourites/:championId
+    const response = await fetch(
+      `/auth/${encodeURIComponent(champ.id)}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      }
+    );
+    if (!response.ok) {
+      console.error('Error adding favourite:', response.statusText);
+      return false;
+    }
+  
     return true;
   },
+  
 
-  remove: async (id) => {
-    const list = await FavoriteService.getAll();
-    await FavoriteService.saveAll(list.filter(c => c.id !== id));
-  },
+  remove: async (champ) => {
+      // ① Call your new POST /profil/favourites/:championId
+      const response = await fetch(
+        `/auth/${encodeURIComponent(champ.id)}`, {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        }
+      );
+      if (!response.ok) {
+        console.error('Error adding favourite:', response.statusText);
+        return false;
+      }
+    
+      return true;
+    },
+  
 
   isFav: async (id) => {
     const list = await FavoriteService.getAll();
-    return list.some(c => c.id === id);
+    return  list.some(c => c.id === String(id));
   }
 };
+
