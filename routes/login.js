@@ -32,7 +32,7 @@ router.post(["/", "/view", "/view/index"], async (req, res, next) => {
 
     // 2️⃣ lookup
     const users = await usersStore.read();
-    const found = users.find(u => u.username === username.trim());
+    const found = users.find((u) => u.username === username.trim());
     if (!found || found.password !== password) {
       console.log("login failed", username, password);
       req.session.error = "Utilisateur ou mot de passe incorrect.";
@@ -40,7 +40,7 @@ router.post(["/", "/view", "/view/index"], async (req, res, next) => {
     }
 
     // 3️⃣ prevent session fixation
-    req.session.regenerate(err => {
+    req.session.regenerate((err) => {
       if (err) return next(err);
       console.log("session regenerated", req.session.id);
       // store only what you need
@@ -48,17 +48,17 @@ router.post(["/", "/view", "/view/index"], async (req, res, next) => {
         id: found.id,
         username: found.username,
         // optionally pull in favourites if you synced them server‑side
-        favourites: found.favourites || []
+        favourites: found.favourites || [],
       };
       delete req.session.error;
 
       // 4️⃣ persist & redirect
-      req.session.save(err => {
+      req.session.save((err) => {
         if (err) return next(err);
         console.log("session saved", req.session.user);
-        const pageContent = new ProfileView().render();
+        const pageContent = new ProfileView(req.session.user).render();
         const fullPage = new SharedLayoutView(pageContent).render();
-         res.send(fullPage);
+        res.send(fullPage);
       });
     });
   } catch (err) {

@@ -7,10 +7,7 @@
  * @property {number} poids - I
  */
 
-
 // === favoriteService.js ===
-
-
 
 const App = (() => {
   class App {
@@ -29,7 +26,7 @@ const App = (() => {
       DELETE: "DELETE", // DELETE
     };
 
-    static activeNav(id="Accueil") {
+    static activeNav(id = "Accueil") {
       const nav = document.querySelectorAll("#site-top-nav > ul > li");
       nav.forEach((li) => {
         if (li.id === id) {
@@ -70,7 +67,7 @@ const App = (() => {
         App.mainContainer.className = "";
 
         App.activeNav();
-        
+
         const response = await fetch(request);
         if (!response.ok) {
           throw new Error(`Une erreur s'est produite: ${response.status}`);
@@ -114,7 +111,7 @@ const App = (() => {
             let tableChampions = App.creerTableChampions(champions);
             App.mainContainer.style = "display:flex";
             App.mainContainer.innerHTML = tableChampions;
-            FavoriteService.getAll()
+            FavoriteService.getAll();
             App.updateFavouriteList();
             App.activeNav("Champion");
             history.pushState(null, "", route);
@@ -123,7 +120,17 @@ const App = (() => {
             App.mainContainer.className = "login-container";
             App.mainContainer.innerHTML = responseText;
             App.activeNav("Login");
-            history.pushState(null, "", route); 
+            history.pushState(null, "", route);
+            break;
+          case route.includes("/profil") && method === App.HTTP_METHODS.GET:
+            App.mainContainer.className = "profil-container";
+            console.log("responseText", JSON.parse(responseText));
+            // let currentUser = JSON.parse(responseText);
+
+            // let viewProfil = App.creerViewProfil(currentUser);
+            App.mainContainer.innerHTML = viewProfil;
+            App.activeNav("Profil");
+            history.pushState(null, "", route);
             break;
           case route.includes("/auth") && method === App.HTTP_METHODS.PUT:
             App.mainContainer.className = "login-container";
@@ -132,7 +139,12 @@ const App = (() => {
             if (user) {
               localStorage.setItem("loggedinUser", JSON.stringify(user));
               App.showSuccess("Vous êtes connecté !");
-              App.handleRequest("/home/index", App.HTTP_METHODS.GET, null, false);
+              App.handleRequest(
+                "/home/index",
+                App.HTTP_METHODS.GET,
+                null,
+                false
+              );
             } else {
               App.showError("Nom d'utilisateur ou mot de passe incorrect.");
             }
@@ -157,6 +169,30 @@ const App = (() => {
         App.showError(error.message);
         return null;
       }
+    }
+
+    static creerViewProfil(user) {
+      return `<div class="">
+        <h1 class="profil-title">Mon Profil</h1>
+        <p class="profil-text"><strong>Nom d'utilisateur :</strong> ${user.username}</p>
+        <p class="profil-text"><strong>Email :</strong> ${user.email}</p>
+
+       
+        <form id="upload-avatar-form" class="profil-form" method="POST" action="/profil/avatar" enctype="multipart/form-data">
+          <label for="avatar" class="profil-text"><strong>Photo de profil :</strong></label>
+          <input type="file" id="avatar" name="avatar" accept="image/*" required class="profil-input">
+          <button type="submit" class="profil-button">Téléverser</button>
+        </form>
+
+        <h2 class="profil-subtitle">Changer de mot de passe</h2>
+        <form id="change-password-form" class="profil-form" method="POST" action="/profil/password">
+          <input type="password" id="old-password" placeholder="Ancien mot de passe" required class="profil-input">
+          <input type="password" id="new-password" placeholder="Nouveau mot de passe" required class="profil-input">
+          <button type="submit" class="profil-button">Mettre à jour</button>
+        </form>
+
+        <button id="logout-btn" class="profil-button logout">Se déconnecter</button>
+      </div>`;
     }
 
     /**
@@ -206,10 +242,7 @@ const App = (() => {
      * @returns {string} HTML string for the table row
      */
     static creerTableRowForChampion(champion) {
-
-
-      if(champion.id == "Fiddlesticks") {
-
+      if (champion.id == "Fiddlesticks") {
         champion.id = "FiddleSticks";
       }
 
@@ -265,58 +298,63 @@ const App = (() => {
 
     static async displayChampionsInfo(id) {
       // 1️⃣ Trouver le champion en castant les deux cotés en chaîne
-      const champ = Object.values(App.champions).find(c => String(c.id) === String(id));
-    
+      const champ = Object.values(App.champions).find(
+        (c) => String(c.id) === String(id)
+      );
+
       // 2️⃣ Gestion du cas “introuvable”
       if (!champ) {
-        console.error(`Champion introuvable pour id=${champ.id}`, App.champions);
+        console.error(
+          `Champion introuvable pour id=${champ.id}`,
+          App.champions
+        );
         return;
       }
-    
+
       // 3️⃣ Affichage des détails
       const infoContainer = App.mainContainer.querySelector("#info-container");
       const isFav = await FavoriteService.isFav(champ.id);
-    
+
       infoContainer.innerHTML = `
         <div class="champion-card">
-          <img src="https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${champ.id}_0.jpg"
+          <img src="https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${
+            champ.id
+          }_0.jpg"
                alt="${champ.name}" class="champion-splash" />
           <h2>${champ.name}</h2>
           <p><strong>Rôle :</strong> ${champ.tags.join(", ")}</p>
           <p><em>${champ.title}</em></p>
           <p>${champ.blurb}</p>
-          <button id="favourite-btn" class="${isFav ? 'favourite' : ''}">
+          <button id="favourite-btn" class="${isFav ? "favourite" : ""}">
             ${isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
           </button>
           <button id="close-details">Fermer</button>
         </div>
       `;
-    
+
       // 4️⃣ Événements sur les boutons
-      document.getElementById("close-details")
-        .addEventListener("click", () => {
-          infoContainer.innerHTML = `<p>Sélectionnez un champion pour voir les détails !</p>`;
-        });
-    
-       document.getElementById("favourite-btn")
+      document.getElementById("close-details").addEventListener("click", () => {
+        infoContainer.innerHTML = `<p>Sélectionnez un champion pour voir les détails !</p>`;
+      });
+
+      document
+        .getElementById("favourite-btn")
         .addEventListener("click", async () => {
           const isFav = await FavoriteService.isFav(champ.id);
           if (isFav) {
             await FavoriteService.remove(champ);
             console.log("Champion retiré des favoris !");
           } else {
-            
             await FavoriteService.add(champ);
             console.log("Champion ajouté aux favoris !");
           }
           App.updateFavouriteList();
-          App.displayChampionsInfo(champ.id);  // rafraîchir l’état du bouton
+          App.displayChampionsInfo(champ.id); // rafraîchir l’état du bouton
         });
     }
-    
 
     // Met à jour la sidebar
-   static  updateFavouriteList = async () => {
+    static updateFavouriteList = async () => {
       const ul = document.getElementById("favourite-list");
       ul.innerHTML = "";
       let list = await FavoriteService.getAll();
@@ -326,14 +364,14 @@ const App = (() => {
         let li = document.createElement("li");
         li.className = "favourite-item";
         li.dataset.championId = champ.id;
-  
+
         let img = document.createElement("img");
         img.src = `https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${champ.id}_0.jpg`;
         img.alt = champ.name;
-  
+
         let span = document.createElement("span");
         span.textContent = champ.name;
-  
+
         li.appendChild(img);
         li.appendChild(span);
         // clic pour afficher détails
@@ -504,16 +542,25 @@ const App = (() => {
   }
 
   document.addEventListener("DOMContentLoaded", App.init);
+  window.addEventListener("DOMContentLoaded", async () => {
+    try {
+      const user = await ProfilService.getProfile();
+      console.log("Utilisateur :", user);
+      // afficher nom, email, avatar, etc.
+    } catch (e) {
+      console.error(e);
+    }
+  });
 
   return App;
 })();
 
 const FavoriteService = {
   STORAGE_KEY: "favouriteChampions",
-  USER_KEY:    "loggedinUser",
+  USER_KEY: "loggedinUser",
 
   getUser: async () => {
-    const res = await fetch("/auth", { credentials: 'include' },);
+    const res = await fetch("/auth", { credentials: "include" });
     if (!res.ok) return null;
     const { user } = await res.json();
 
@@ -522,53 +569,62 @@ const FavoriteService = {
 
   getAll: async () => {
     const user = await FavoriteService.getUser();
-    return await user?.favourites || [];
-
+    return (await user?.favourites) || [];
   },
 
   add: async (champ) => {
     // ① Call your new POST /profil/favourites/:championId
-    const response = await fetch(
-      `/auth/${encodeURIComponent(champ.id)}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest'
-        }
-      }
-    );
+    const response = await fetch(`/auth/${encodeURIComponent(champ.id)}`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+      },
+    });
     if (!response.ok) {
-      console.error('Error adding favourite:', response.statusText);
+      console.error("Error adding favourite:", response.statusText);
       return false;
     }
-  
+
     return true;
   },
-  
 
   remove: async (champ) => {
-      // ① Call your new POST /profil/favourites/:championId
-      const response = await fetch(
-        `/auth/${encodeURIComponent(champ.id)}`, {
-          method: 'DELETE',
-          credentials: 'include',
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-          }
-        }
-      );
-      if (!response.ok) {
-        console.error('Error adding favourite:', response.statusText);
-        return false;
-      }
-    
-      return true;
-    },
-  
+    // ① Call your new POST /profil/favourites/:championId
+    const response = await fetch(`/auth/${encodeURIComponent(champ.id)}`, {
+      method: "DELETE",
+      credentials: "include",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+      },
+    });
+    if (!response.ok) {
+      console.error("Error adding favourite:", response.statusText);
+      return false;
+    }
+
+    return true;
+  },
 
   isFav: async (id) => {
     const list = await FavoriteService.getAll();
-    return  list.some(c => c.id === String(id));
-  }
+    return list.some((c) => c.id === String(id));
+  },
 };
 
+const ProfilService = {
+  baseUrl: "/profil",
+
+  /**
+   * Récupère les données du profil connecté
+   * @returns {Promise<object>} user
+   */
+  async getProfile() {
+    const res = await fetch(this.baseUrl, {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) throw new Error(`Erreur ${res.status}`);
+    return res.json();
+  },
+};

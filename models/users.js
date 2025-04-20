@@ -9,7 +9,10 @@ class User {
   password;
 
   /**@type {[Champion]} */
-  listChampions = [];
+  favourites = [];
+
+  /**@type {string} */
+  avatar = "/img/default-avatar.png";
 }
 
 export default User;
