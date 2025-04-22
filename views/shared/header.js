@@ -1,18 +1,15 @@
 import View from "#core/view.js";
 import session from "express-session";
 
-
 function getCookie(name) {
   const match = session.user?.cookie.match(
-    new RegExp('(^|; )' + name + '=([^;]*)')
+    new RegExp("(^|; )" + name + "=([^;]*)")
   );
   return match ? decodeURIComponent(match[2]) : null;
 }
 
 class SharedHeaderView extends View {
-
-  static template = () => {
-  
+  static template = ({ user }) => {
     return View.html`
     <header id="site-header">
         <!-- Commentaire -->
@@ -28,17 +25,28 @@ class SharedHeaderView extends View {
           <li data-url="/contact" id="Contact" class="nav-element">Contact</li>
         </ul>
         <ul class="site-top-nav-login">
-          <li data-url="/login" id="Login" class="nav-element nav-login">Login</li>
-          <li data-url="/registrer" id="Register" class="nav-element nav-register">Register</li>
-          </ul>
+          ${
+            user
+              ? View.html`
+                  <li data-url="/profil" class="nav-element"><img src="${user.avatar}"/></li>
+                  <li data-url="/logout" class="nav-element">Déconnexion</li>
+                `
+              : View.html`
+                  <li data-url="/login" class="nav-element">Connexion</li>
+                  <li data-url="/register" class="nav-element">Inscription</li>
+                `
+          }
+        </ul>
+
       </nav>
     </header>
   `;
-  }
+  };
 
-  constructor() {
-    super(SharedHeaderView.template);
+  constructor(user) {
+    super(SharedHeaderView.template, user);
+    this.user = user;
   }
 }
 
-export default new SharedHeaderView();
+export default SharedHeaderView;

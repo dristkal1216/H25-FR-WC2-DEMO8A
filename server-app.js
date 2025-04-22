@@ -17,10 +17,9 @@ app.use(
     saveUninitialized: false, // ne sauve pas les sessions vides
     cookie: {
       maxAge: 86400000,
-      secure: process.env.NODE_ENV === 'production',  // only true in prod
+      secure: process.env.NODE_ENV === "production", // only true in prod
       httpOnly: true,
     },
-    
   })
 );
 
@@ -61,6 +60,16 @@ app.use((req, res, next) => {
 app.use(function (err, req, res, next) {
   console.error(err.stack);
   res.status(500).send("Something broke!");
+});
+
+app.use(async (req, res, next) => {
+  if (req.session.user?.id) {
+    res.locals.user = req.session.user;
+    console.log("Session utilisateur :", req.session.user);
+  } else {
+    res.locals.user = null;
+  }
+  next();
 });
 
 app.listen(port, (erreur) => {

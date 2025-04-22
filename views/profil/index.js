@@ -1,7 +1,7 @@
 import View from "#core/view.js";
 
 class ProfileView extends View {
-  static template = (user) => View.html`
+  static template = ({ user }) => View.html`
     <h1 class="profil-title">Mon Profil</h1>
     <p class="profil-text"><strong>Nom d'utilisateur :</strong> ${
       user.username
@@ -9,18 +9,18 @@ class ProfileView extends View {
 
     <h2 class="profil-subtitle">Champions Favoris</h2>
     ${
-      user.favourites.length > 0
+      Array.isArray(user.favourites) && user.favourites.length > 0
         ? user.favourites
             .map(
               (champion) => View.html`
-            <div class="champion" data-champion-id="${champion.id}" data-roles="${champion.tags}">
-              <img
-                src="https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${champion.id}_0.jpg"
-                alt="${champion.name}"
-              />
-              <p>${champion.name}</p>
-            </div>
-          `
+              <div class="champion" data-champion-id="${champion.id}" data-roles="${champion.tags}">
+                <img
+                  src="https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${champion.id}_0.jpg"
+                  alt="${champion.name}"
+                />
+                <p>${champion.name}</p>
+              </div>
+            `
             )
             .join("")
         : View.html`
@@ -30,7 +30,7 @@ class ProfileView extends View {
 
     <h2 class="profil-subtitle">Avatar</h2>
     <img
-      src="${user.avatar}"
+      src="${user.avatar || "/img/default-avatar.jpg"}"
       alt="Avatar de ${user.username}"
       class="profil-avatar"
     />
@@ -92,7 +92,7 @@ class ProfileView extends View {
   `;
 
   constructor(user) {
-    super(ProfileView.template, user, ProfileView.conteneur);
+    super(ProfileView.template, { user }, ProfileView.conteneur);
   }
 }
 

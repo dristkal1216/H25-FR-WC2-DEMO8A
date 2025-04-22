@@ -19,7 +19,7 @@ router.get(['/', '/index'], async (req, res, next) => {
   }
   
   // Now wrap the content in the shared layout
-  let fullPage = new SharedLayoutView(pageContent).render();
+  let fullPage = new SharedLayoutView(pageContent,req.session?.user).render();
   if (fullPage && typeof fullPage.outerHTML === 'string') {
     fullPage = fullPage.outerHTML;
   }

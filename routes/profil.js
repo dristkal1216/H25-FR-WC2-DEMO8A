@@ -1,89 +1,79 @@
-// routes/profil.js
 import express from "express";
 import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+import { usersStore } from "#core/data-stores/index.js";
 import SharedLayoutView from "#views/shared/layout.js";
 import ProfileView from "#views/profil/index.js";
-import { usersStore } from "#core/data-stores/index.js";
 
 const router = express.Router();
 
-// Configuration de Multer pour le téléversement de fichier
+// Configuration Multer (avatar → public/img/avatar)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "../img/avatar/");
+    const dir = path.join(process.cwd(), "public", "img", "avatar");
+    fs.mkdirSync(dir, { recursive: true }); // crée le dossier si inexistant
+    cb(null, dir);
   },
   filename: (req, file, cb) => {
-    const ext = file.originalname.split(".").pop();
-    const filename = `avatar_${req.session.user.id}_${Date.now()}.${ext}`;
+    const ext = path.extname(file.originalname);
+    const filename = `avatar_${req.session.user.id}_${Date.now()}${ext}`;
     cb(null, filename);
   },
 });
 const upload = multer({ storage });
 
-// GET /profil  → protected profile page
-router.get("/", (req, res) => {
-  if (!req.session.user) {
-    return res.redirect("/login");
-  }
-
-  console.log("Session utilisateur :", req.session.user);
+/**
+ * GET /profil → page de profil protégée
+ */
+router.get("/", async (req, res) => {
+  if (!req.session.user) return res.redirect("/login");
 
   const pageContent = new ProfileView(req.session.user).render();
-  console.log("Profil de l'utilisateur :", req.session.user);
+
   if (req.xhr) return res.send(pageContent);
-  res.send(new SharedLayoutView(pageContent).render());
+  return res.send(new SharedLayoutView(pageContent, req.session.user).render());
 });
 
-// POST /profil/avatar  → réception et traitement du fichier avatar
+/**
+ * POST /profil/avatar → téléversement de l’avatar
+ */
 router.post("/avatar", upload.single("avatar"), async (req, res) => {
-  if (!req.session.user) {
-    return res.redirect("/login");
-  }
-  if (!req.file) {
-    return res.status(400).send("Aucun fichier reçu");
-  }
+  if (!req.session.user) return res.redirect("/login");
+  if (!req.file) return res.status(400).send("Aucun fichier reçu");
 
-  // Mettre à jour le chemin de l'avatar dans le stockage JSON
   const allUsers = await usersStore.read();
-  const me = allUsers.find((u) => u.id === req.session.user.id);
-  if (!me) {
-    return res.sendStatus(404);
-  }
-  // Stocker le chemin relatif pour affichage
-  const avatarPath = `../img/avatar/${req.file.filename}`;
-  me.avatar = avatarPath;
-  await usersStore.write(me);
+  const user = allUsers.find((u) => u.id === req.session.user.id);
+  if (!user) return res.sendStatus(404);
 
-  // Mettre à jour la session
+  const avatarPath = `/img/avatar/${req.file.filename}`;
+  user.avatar = avatarPath;
   req.session.user.avatar = avatarPath;
 
-  // Rediriger vers la page profil
+  await usersStore.write(allUsers);
   res.redirect("/profil");
 });
 
-// PUT /profil/favourites  → sync favourites to server
+/**
+ * PUT /profil/favourites → mise à jour des favoris
+ */
 router.put("/favourites", async (req, res) => {
-  if (!req.session.user) {
-    return res.sendStatus(401);
-  }
+  if (!req.session.user) return res.sendStatus(401);
 
   const { favourites } = req.body;
   if (!Array.isArray(favourites)) {
     return res.status(400).json({ error: "Invalid payload" });
   }
 
-  // update JSON store
   const allUsers = await usersStore.read();
-  const me = allUsers.find((u) => u.id === req.session.user.id);
-  if (!me) {
-    return res.sendStatus(404);
-  }
+  const user = allUsers.find((u) => u.id === req.session.user.id);
+  if (!user) return res.sendStatus(404);
 
-  me.favourites = favourites;
-  await usersStore.write(allUsers);
-
-  // update session copy
+  user.favourites = favourites;
   req.session.user.favourites = favourites;
+
+  await usersStore.write(allUsers);
   res.sendStatus(204);
 });
 

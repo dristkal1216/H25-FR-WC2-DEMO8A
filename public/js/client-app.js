@@ -542,15 +542,6 @@ const App = (() => {
   }
 
   document.addEventListener("DOMContentLoaded", App.init);
-  window.addEventListener("DOMContentLoaded", async () => {
-    try {
-      const user = await ProfilService.getProfile();
-      console.log("Utilisateur :", user);
-      // afficher nom, email, avatar, etc.
-    } catch (e) {
-      console.error(e);
-    }
-  });
 
   return App;
 })();
@@ -609,22 +600,5 @@ const FavoriteService = {
   isFav: async (id) => {
     const list = await FavoriteService.getAll();
     return list.some((c) => c.id === String(id));
-  },
-};
-
-const ProfilService = {
-  baseUrl: "/profil",
-
-  /**
-   * Récupère les données du profil connecté
-   * @returns {Promise<object>} user
-   */
-  async getProfile() {
-    const res = await fetch(this.baseUrl, {
-      credentials: "include",
-      headers: { Accept: "application/json" },
-    });
-    if (!res.ok) throw new Error(`Erreur ${res.status}`);
-    return res.json();
   },
 };

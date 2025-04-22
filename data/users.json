@@ -27,7 +27,9 @@
           "w": 48,
           "h": 48
         },
-        "tags": ["Mage"],
+        "tags": [
+          "Mage"
+        ],
         "partype": "Mana",
         "stats": {
           "hp": 600,
@@ -53,7 +55,7 @@
         }
       }
     ],
-    "avatar": ""
+    "avatar": "/img/avatar/avatar_1_1745186240436.png"
   },
   {
     "id": 2,

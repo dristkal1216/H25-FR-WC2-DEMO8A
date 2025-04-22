@@ -11,7 +11,7 @@ router.get(['/', '/index'], async(req, res, next) => {
         return res.send(pageContent);
     }
     
-    const fullPage = new SharedLayoutView(pageContent).render();
+    const fullPage = new SharedLayoutView(pageContent,req.locals.user).render();
     res.send(fullPage);  
 });
 
