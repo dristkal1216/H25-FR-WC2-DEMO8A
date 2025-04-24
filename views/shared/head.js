@@ -7,7 +7,7 @@ class SharedHeadView extends View {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Document</title>
         <link rel="stylesheet" href="/css/styles.css">
-        <script src="/js/client-app.js"></script>
+        <script type="module" src="/js/client-app.js"></script>
     </head>
     `;
 

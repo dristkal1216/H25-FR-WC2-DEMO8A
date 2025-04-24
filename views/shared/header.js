@@ -9,7 +9,7 @@ function getCookie(name) {
 }
 
 class SharedHeaderView extends View {
-  static template = ({ user }) => {
+  static template = ({ user } = {}) => {
     return View.html`
     <header id="site-header">
         <!-- Commentaire -->
@@ -28,12 +28,12 @@ class SharedHeaderView extends View {
           ${
             user
               ? View.html`
-                  <li data-url="/profil" class="nav-element"><img src="${user.avatar}"/></li>
-                  <li data-url="/logout" class="nav-element">Déconnexion</li>
+                  <li data-url="/profil" class="nav-element"><img src="${user.avatar}" class="profil-avatar-navbar" width="25rem" height="25rem"/></li>
+                  <li data-url="/auth/logout" class="nav-element no-ajax">Déconnexion</li>
                 `
               : View.html`
                   <li data-url="/login" class="nav-element">Connexion</li>
-                  <li data-url="/register" class="nav-element">Inscription</li>
+                  <li data-url="/register" class="nav-element ">Inscription</li>
                 `
           }
         </ul>
@@ -44,8 +44,7 @@ class SharedHeaderView extends View {
   };
 
   constructor(user) {
-    super(SharedHeaderView.template, user);
-    this.user = user;
+    super(SharedHeaderView.template, { user });
   }
 }
 

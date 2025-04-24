@@ -8,18 +8,20 @@ class ProfileView extends View {
     }</p>
 
     <h2 class="profil-subtitle">Champions Favoris</h2>
+    <ul class="profil-champions">
     ${
       Array.isArray(user.favourites) && user.favourites.length > 0
         ? user.favourites
             .map(
               (champion) => View.html`
-              <div class="champion" data-champion-id="${champion.id}" data-roles="${champion.tags}">
+              <li class="profil-champion" data-champion-id="${champion.id}" data-roles="${champion.tags}">
                 <img
-                  src="https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${champion.id}_0.jpg"
+                  src="https://cdn.communitydragon.org/latest/champion/${champion.id}/splash-art/centered/skin/0.jpg"
                   alt="${champion.name}"
+
                 />
                 <p>${champion.name}</p>
-              </div>
+              </li>
             `
             )
             .join("")
@@ -27,6 +29,8 @@ class ProfileView extends View {
           <p class="profil-text">Aucun champion favori sélectionné.</p>
         `
     }
+    </ul>
+    
 
     <h2 class="profil-subtitle">Avatar</h2>
     <img
@@ -37,7 +41,7 @@ class ProfileView extends View {
   `;
 
   static conteneur = View.html`
-    <div>
+    
       ${View.bodyMarker}
 
       <form
@@ -71,6 +75,7 @@ class ProfileView extends View {
         <input
           type="password"
           id="old-password"
+          name="oldPassword"
           placeholder="Ancien mot de passe"
           required
           class="profil-input"
@@ -78,6 +83,7 @@ class ProfileView extends View {
         <input
           type="password"
           id="new-password"
+          name="newPassword"
           placeholder="Nouveau mot de passe"
           required
           class="profil-input"
@@ -85,10 +91,11 @@ class ProfileView extends View {
         <button type="submit" class="profil-button">Mettre à jour</button>
       </form>
 
+
       <button id="logout-btn" class="profil-button logout">
         Se déconnecter
       </button>
-    </div>
+    
   `;
 
   constructor(user) {

@@ -1,602 +1,478 @@
+import RequestHandler from "./request-handler.js";
+
 /**
- * Item
+ * Item Type Definition
  * @typedef {Object} Item
- * @property {number} id - I
- * @property {string} nom - I
- * @property {string} description - I
- * @property {number} poids - I
+ * @property {number} id - Item ID
+ * @property {string} nom - Item name
+ * @property {string} description - Item description
+ * @property {number} poids - Item weight
  */
 
-// === favoriteService.js ===
-
-const App = (() => {
+// === MAIN APPLICATION MODULE ===
+export const App = (() => {
   class App {
-    /** @type {HTMLElement} */
-    static mainContainer;
-    /** @type {HTMLElement} */
-    static modal;
+    // === STATIC PROPERTIES ===
+    static mainContainer; // Main content container
+    static modal; // Modal dialog element
+    static champions; // Array of champion data
 
-    /**@type {[{}]} */
-    static champions;
-
+    // HTTP Methods enumeration
     static HTTP_METHODS = {
-      POST: "POST", // CREATE
-      GET: "GET", // READ
-      PATCH: "PATCH", // UPDATE
-      DELETE: "DELETE", // DELETE
+      POST: "POST", // Create operation
+      GET: "GET", // Read operation
+      PATCH: "PATCH", // Update operation
+      DELETE: "DELETE", // Delete operation
     };
 
+    // === NAVIGATION METHODS ===
+
+    /**
+     * Sets active state on navigation item
+     * @param {string} id - ID of the nav item to activate
+     */
     static activeNav(id = "Accueil") {
-      const nav = document.querySelectorAll("#site-top-nav > ul > li");
-      nav.forEach((li) => {
-        if (li.id === id) {
-          li.classList.add("nav-active");
-        } else {
-          li.classList.remove("nav-active");
-        }
+      document.querySelectorAll("#site-top-nav > ul > li").forEach((li) => {
+        li.classList.toggle("nav-active", li.id === id);
       });
     }
 
-    /**
-     * @param {string} route
-     * @param {"POST"|"GET"|"PATCH"|"DELETE"} method
-     * @param {string|URLSearchParams|FormData} body
-     * @return {Object|null}
-     */
-    static async handleRequest(
-      route,
-      method = App.HTTP_METHODS.GET,
-      body = null,
-      pushState = true
-    ) {
-      const options = {
-        method: `${method}`,
-        headers: { "X-Requested-With": "XMLHttpRequest" },
-      };
-
-      if (body instanceof URLSearchParams) route += `?${body}`;
-      if (body !== null && method !== "GET") {
-        options.headers["Content-Type"] = "application/json";
-        options.body = body;
-      }
-
-      const request = new Request(route, options);
-
-      try {
-        App.mainContainer.style = "";
-        App.mainContainer.className = "";
-
-        App.activeNav();
-
-        const response = await fetch(request);
-        if (!response.ok) {
-          throw new Error(`Une erreur s'est produite: ${response.status}`);
-        }
-        let responseText = await response.text();
-        // Process Response
-        switch (true) {
-          case route.includes("/accueil") && method === App.HTTP_METHODS.GET:
-            App.mainContainer.className = "acceuil-container";
-            App.mainContainer.innerHTML = responseText;
-            history.pushState(null, "", route);
-            break;
-          case route.includes("/apropos") && method === App.HTTP_METHODS.GET:
-            App.mainContainer.className = "apropos-container";
-            App.mainContainer.innerHTML = responseText;
-            App.activeNav("Apropos");
-            history.pushState(null, "", route);
-            break;
-          case route.includes("/contact") && method === App.HTTP_METHODS.GET:
-            App.mainContainer.className = "contact-container";
-            App.mainContainer.innerHTML = responseText;
-            App.activeNav("Contact");
-            history.pushState(null, "", route);
-            break;
-          case route.includes("/contact") && method === App.HTTP_METHODS.POST:
-            App.mainContainer.className = "contact-container";
-            App.mainContainer.innerHTML = responseText;
-            App.activeNav("Contact");
-            App.showSuccess("Votre message a été envoyé avec succès !");
-            history.pushState(null, "", route);
-          case route.includes("/items") && method === App.HTTP_METHODS.GET:
-            let items = JSON.parse(responseText);
-            let tableItems = App.creerTableItems(items);
-            App.mainContainer.innerHTML = tableItems;
-            history.pushState(null, "", route);
-            break;
-          case route.includes("/champion") && method === App.HTTP_METHODS.GET:
-            App.mainContainer.className = "site-main-container";
-            let champions = JSON.parse(responseText);
-            App.champions = champions;
-            let tableChampions = App.creerTableChampions(champions);
-            App.mainContainer.style = "display:flex";
-            App.mainContainer.innerHTML = tableChampions;
-            FavoriteService.getAll();
-            App.updateFavouriteList();
-            App.activeNav("Champion");
-            history.pushState(null, "", route);
-            break;
-          case route.includes("/login") && method === App.HTTP_METHODS.GET:
-            App.mainContainer.className = "login-container";
-            App.mainContainer.innerHTML = responseText;
-            App.activeNav("Login");
-            history.pushState(null, "", route);
-            break;
-          case route.includes("/profil") && method === App.HTTP_METHODS.GET:
-            App.mainContainer.className = "profil-container";
-            console.log("responseText", JSON.parse(responseText));
-            // let currentUser = JSON.parse(responseText);
-
-            // let viewProfil = App.creerViewProfil(currentUser);
-            App.mainContainer.innerHTML = viewProfil;
-            App.activeNav("Profil");
-            history.pushState(null, "", route);
-            break;
-          case route.includes("/auth") && method === App.HTTP_METHODS.PUT:
-            App.mainContainer.className = "login-container";
-            App.mainContainer.innerHTML = responseText;
-            const user = JSON.parse(responseText);
-            if (user) {
-              localStorage.setItem("loggedinUser", JSON.stringify(user));
-              App.showSuccess("Vous êtes connecté !");
-              App.handleRequest(
-                "/home/index",
-                App.HTTP_METHODS.GET,
-                null,
-                false
-              );
-            } else {
-              App.showError("Nom d'utilisateur ou mot de passe incorrect.");
-            }
-            history.pushState(null, "", route);
-            break;
-          case route.includes("/profil"):
-            App.mainContainer.className = "profil-container";
-            App.mainContainer.innerHTML = responseText;
-            history.pushState(null, "", route);
-            App.activeNav("Login");
-            break;
-          case route.includes("/items") && method === App.HTTP_METHODS.POST:
-          case route.includes("/items") && method === App.HTTP_METHODS.PATCH:
-          case route.includes("/items") && method === App.HTTP_METHODS.DELETE:
-            const item = JSON.parse(responseText);
-            return item;
-          default:
-            console.warn("route/methode incorrect:", route, method);
-            break;
-        }
-      } catch (error) {
-        App.showError(error.message);
-        return null;
-      }
-    }
-
-    static creerViewProfil(user) {
-      return `<div class="">
-        <h1 class="profil-title">Mon Profil</h1>
-        <p class="profil-text"><strong>Nom d'utilisateur :</strong> ${user.username}</p>
-        <p class="profil-text"><strong>Email :</strong> ${user.email}</p>
-
-       
-        <form id="upload-avatar-form" class="profil-form" method="POST" action="/profil/avatar" enctype="multipart/form-data">
-          <label for="avatar" class="profil-text"><strong>Photo de profil :</strong></label>
-          <input type="file" id="avatar" name="avatar" accept="image/*" required class="profil-input">
-          <button type="submit" class="profil-button">Téléverser</button>
-        </form>
-
-        <h2 class="profil-subtitle">Changer de mot de passe</h2>
-        <form id="change-password-form" class="profil-form" method="POST" action="/profil/password">
-          <input type="password" id="old-password" placeholder="Ancien mot de passe" required class="profil-input">
-          <input type="password" id="new-password" placeholder="Nouveau mot de passe" required class="profil-input">
-          <button type="submit" class="profil-button">Mettre à jour</button>
-        </form>
-
-        <button id="logout-btn" class="profil-button logout">Se déconnecter</button>
-      </div>`;
-    }
+    // === VIEW RENDERERS ===
 
     /**
-     * Render the champions table from an array of Champion objects.
-     * @param {Champion[]} championArray
-     * @returns {string} HTML for the table
+     * Creates champions grid view
+     * @param {Array} championArray - Array of champion objects
+     * @return {string} - HTML string
      */
     static creerTableChampions(championArray) {
       return `
-      <div id="champion-section">
-      <input type="text" id="search-bar" placeholder="Rechercher un champion..." />
-      <div id="filter-bar">
-        <button class="filter-btn" data-role="Tank">
-          <img src="../img/tank.svg" alt="Tank"></img>
-        </button>
-        <button class="filter-btn" data-role="Mage">
-          <img src="../img/mage.svg" alt="Mage"></img>
-        </button>
-        <button class="filter-btn" data-role="Assassin">
-          <img src="../img/assassin.svg" alt="Assassin"></img>
-        </button>
-        <button class="filter-btn" data-role="Support">
-          <img src="../img/support.svg" alt="Support"></img>
-        </button>
-        <button class="filter-btn" data-role="Marksman">
-          <img src="../img/marksman.svg" alt="Marksman"></img>
-        </button>
-        <button class="filter-btn" data-role="Fighter">
-          <img src="../img/Fighter.svg" alt="Fighter"></img>
-        </button>
-      </div>
-      <div id="champion-container">
-        ${championArray
-          .map((champion) => App.creerTableRowForChampion(champion))
-          .join("")}
-      </div>
-    </div>
-    <div id="info-container">
-        <p>Sélectionnez un champion pour voir les détails !</p>
-    </div>
-    `;
+        <div id="champion-section">
+          <input type="text" id="search-bar" placeholder="Search champions..." />
+          <div id="filter-bar">
+            ${["Tank", "Mage", "Assassin", "Support", "Marksman", "Fighter"]
+              .map(
+                (role) => `
+                <button class="filter-btn" data-role="${role}">
+                  <img src="../img/${role.toLowerCase()}.svg" alt="${role}">
+                </button>`
+              )
+              .join("")}
+          </div>
+          <div id="champion-container">
+            ${championArray
+              .map((champ) => App.creerTableRowForChampion(champ))
+              .join("")}
+          </div>
+        </div>
+        <div id="info-container">
+          <p>Select a champion to see details!</p>
+        </div>`;
     }
 
     /**
-     * Create an HTML table row for a single Champion.
-     * @param {Champion} champion
-     * @returns {string} HTML string for the table row
+     * Creates single champion card
+     * @param {Object} champion - Champion data
+     * @return {string} - HTML string
      */
     static creerTableRowForChampion(champion) {
-      if (champion.id == "Fiddlesticks") {
-        champion.id = "FiddleSticks";
-      }
-
+      const champId =
+        champion.id === "Fiddlesticks" ? "FiddleSticks" : champion.id;
       return `
-       <div class="champion" data-champion-id="${champion.id}" data-roles="${champion.tags}">
-        <img src="https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${champion.id}_0.jpg" alt="${champion.name}"/>
-        <p>${champion.name}</p>
-      </div>
-    `;
+        <div class="champion" data-champion-id="${champId}" data-roles="${champion.tags}">
+          <img src="https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${champId}_0.jpg" 
+               alt="${champion.name}"/>
+          <p>${champion.name}</p>
+        </div>`;
     }
 
+    // === CHAMPIONS DISPLAY LOGIC ===
+
+    /**
+     * Filters and displays champions based on role and search term
+     * @param {string} filterRole - Role to filter by
+     * @param {string} searchTerm - Search string for champion names
+     */
     static displayChampions(filterRole = "All", searchTerm = "") {
-      // Get the container element
-      const championsContainer = App.mainContainer.querySelector(
-        "#champion-container"
-      );
+      const container = App.mainContainer.querySelector("#champion-container");
+      if (!container) return;
 
-      if (!championsContainer) {
-        return;
-      }
+      // Préparer le filtre
+      const term = searchTerm.toLowerCase();
+      const isAll = filterRole === "All";
 
-      // On vide le container au début
-      championsContainer.innerHTML = "";
+      const rows = Object.values(App.champions || {})
+        .filter(
+          (champ) =>
+            // rôle
+            (isAll || champ.tags.includes(filterRole)) &&
+            // recherche
+            (!term || champ.id.toLowerCase().includes(term))
+        )
+        .map((champ) => {
+          // correction spécifique
+          if (champ.id === "Fiddlesticks") champ.id = "FiddleSticks";
+          return App.creerTableRowForChampion(champ);
+        })
+        .join("");
 
-      // On initialise une variable pour accumuler le HTML généré
-      let htmlRows = "";
-
-      // On parcourt chaque champion de App.champions.
-      // Si App.champions est déjà un tableau, Object.values() n'est pas nécessaire.
-      Object.values(App.champions).forEach((champion) => {
-        // Vérifier si le champion possède le rôle recherché
-
-        if (filterRole === "All" || champion.tags.includes(filterRole)) {
-          if (searchTerm !== "") {
-            // Vérifier si le nom du champion contient le terme de recherche
-            if (champion.id.toLowerCase().includes(searchTerm.toLowerCase())) {
-              if (champion.id == "Fiddlesticks") {
-                champion.id = "FiddleSticks";
-                console.log(champion.id);
-              }
-
-              htmlRows += App.creerTableRowForChampion(champion);
-            }
-          } else {
-            htmlRows += App.creerTableRowForChampion(champion);
-          }
-        }
-      });
-
-      // On assigne tout le HTML généré au container une seule fois.
-      championsContainer.innerHTML = htmlRows;
+      container.innerHTML = rows;
     }
 
+    /**
+     * Displays detailed champion information
+     * @param {string} id - Champion ID
+     */
     static async displayChampionsInfo(id) {
-      // 1️⃣ Trouver le champion en castant les deux cotés en chaîne
-      const champ = Object.values(App.champions).find(
+      // 1) Récupérer le champion
+      const champ = Object.values(App.champions || {}).find(
         (c) => String(c.id) === String(id)
       );
-
-      // 2️⃣ Gestion du cas “introuvable”
       if (!champ) {
-        console.error(
-          `Champion introuvable pour id=${champ.id}`,
-          App.champions
-        );
+        console.error("Champion not found:", id);
         return;
       }
 
-      // 3️⃣ Affichage des détails
-      const infoContainer = App.mainContainer.querySelector("#info-container");
+      // 2) Vérifier si c'est un favori
       const isFav = await FavoriteService.isFav(champ.id);
 
-      infoContainer.innerHTML = `
+      // 3) Trouver le container et injecter le HTML
+      const container = App.mainContainer.querySelector("#info-container");
+      if (!container) return;
+      container.innerHTML = `
         <div class="champion-card">
-          <img src="https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${
-            champ.id
-          }_0.jpg"
-               alt="${champ.name}" class="champion-splash" />
+          <img
+            src="https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${
+              champ.id
+            }_0.jpg"
+            alt="${champ.name}"
+            class="champion-splash"
+          />
           <h2>${champ.name}</h2>
-          <p><strong>Rôle :</strong> ${champ.tags.join(", ")}</p>
+          <p><strong>Role:</strong> ${champ.tags.join(", ")}</p>
           <p><em>${champ.title}</em></p>
           <p>${champ.blurb}</p>
           <button id="favourite-btn" class="${isFav ? "favourite" : ""}">
-            ${isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
+            ${isFav ? "Remove from Favorites" : "Add to Favorites"}
           </button>
-          <button id="close-details">Fermer</button>
+          <button id="close-details">Close</button>
         </div>
       `;
 
-      // 4️⃣ Événements sur les boutons
-      document.getElementById("close-details").addEventListener("click", () => {
-        infoContainer.innerHTML = `<p>Sélectionnez un champion pour voir les détails !</p>`;
+      // 4) Ajouter les écouteurs en utilisant optional chaining
+      const closeBtn = container.querySelector("#close-details");
+      closeBtn?.addEventListener("click", () => {
+        container.innerHTML = `<p>Select a champion to see details!</p>`;
       });
 
-      document
-        .getElementById("favourite-btn")
-        .addEventListener("click", async () => {
-          const isFav = await FavoriteService.isFav(champ.id);
-          if (isFav) {
-            await FavoriteService.remove(champ);
-            console.log("Champion retiré des favoris !");
-          } else {
-            await FavoriteService.add(champ);
-            console.log("Champion ajouté aux favoris !");
-          }
-          App.updateFavouriteList();
-          App.displayChampionsInfo(champ.id); // rafraîchir l’état du bouton
-        });
+      const favBtn = container.querySelector("#favourite-btn");
+      favBtn?.addEventListener("click", async () => {
+        // basculer le statut favori, puis recharger l'affichage
+        await (isFav
+          ? FavoriteService.remove(champ)
+          : FavoriteService.add(champ));
+        App.updateFavouriteList();
+        App.displayChampionsInfo(champ.id);
+      });
     }
 
-    // Met à jour la sidebar
+    // === FAVORITES MANAGEMENT ===
+
+    /**
+     * Updates favorites list in sidebar
+     */
     static updateFavouriteList = async () => {
       const ul = document.getElementById("favourite-list");
-      ul.innerHTML = "";
-      let list = await FavoriteService.getAll();
-      console.log(list);
-      list.sort((a, b) => a.name.localeCompare(b.name));
-      list.forEach((champ) => {
-        let li = document.createElement("li");
-        li.className = "favourite-item";
-        li.dataset.championId = champ.id;
+      if (!ul) return;
 
-        let img = document.createElement("img");
-        img.src = `https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${champ.id}_0.jpg`;
-        img.alt = champ.name;
+      const list = await FavoriteService.getAll().catch(() => []);
+      if (list.length === 0) {
+        ul.innerHTML = "<li>Aucun favori</li>";
+      } else {
+        // determine sort order
+        const triBtn = document.getElementById("tri-button");
+        const asc = triBtn?.dataset.asc === "true";
 
-        let span = document.createElement("span");
-        span.textContent = champ.name;
+        const sorted = list.sort((a, b) =>
+          asc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+        );
 
-        li.appendChild(img);
-        li.appendChild(span);
-        // clic pour afficher détails
-        li.addEventListener("click", () => App.displayChampionsInfo(champ.id));
-        li.appendChild(img);
-        ul.appendChild(li);
-      });
+        ul.innerHTML = sorted
+          .map(
+            (champ) => `
+            <li class="favourite-item" data-champion-id="${champ.id}">
+              <img
+                src="https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${champ.id}_0.jpg"
+                alt="${champ.name}"
+              />
+              <span>${champ.name}</span>
+            </li>`
+          )
+          .join("");
+      }
+
+      // re-attach click on each item
+      ul.querySelectorAll(".favourite-item").forEach((li) =>
+        li.addEventListener("click", () =>
+          App.displayChampionsInfo(li.dataset.championId)
+        )
+      );
+
+      // **ensure tri-button is wired** each time we rebuild
+      const triBtn = document.getElementById("tri-button");
+      if (triBtn) {
+        // remove any existing handler to avoid double-fires
+        triBtn.replaceWith(triBtn.cloneNode(true));
+        const fresh = document.getElementById("tri-button");
+        fresh.addEventListener("click", () => {
+          const asc = fresh.dataset.asc === "true";
+          fresh.dataset.asc = (!asc).toString();
+          fresh.textContent = asc ? "Sort A-Z" : "Sort Z-A";
+          App.updateFavouriteList();
+        });
+      }
     };
 
-    // Trie A‑Z / Z‑A
-    static toggleSort = () => {
-      const btn = document.getElementById("tri-button");
-      let asc = btn.dataset.asc !== "false";
-      btn.dataset.asc = !asc;
-      btn.textContent = asc ? "Trier Z‑A" : "Trier A‑Z";
-      App.updateFavouriteList();
-    };
+    // === UI UTILITIES ===
 
+    /**
+     * Toggles modal visibility
+     * @param {HTMLElement} modal - Modal element
+     */
     static toggleModal = (modal) => modal?.classList?.toggle("show");
 
     /**
-     * Fonction globale pour afficher des modales.
-     * @param {'success'|'error'} type 'success' or 'error'
-     * @param {string} message The message to display.
+     * Shows modal with message
+     * @param {'success'|'error'} type - Modal type
+     * @param {string} message - Message to display
      */
     static showModal(type, message) {
       const modalContent = App.modal?.querySelector(".modal-message-content");
       if (!modalContent) return;
+
       const modalTitle = modalContent.querySelector("h2");
       const modalMessage = modalContent.querySelector("p");
-      if (modalTitle) {
-        modalTitle.innerText = type === "success" ? "Succès!" : "Erreur!";
-      }
+
+      if (modalTitle)
+        modalTitle.innerText = type === "success" ? "Success!" : "Error!";
       if (modalMessage) {
         modalMessage.innerText = message;
         modalMessage.style.color = type === "success" ? "darkgreen" : "darkred";
       }
+
       App.toggleModal(App.modal);
     }
 
-    static showSuccess(message) {
-      App.showModal("success", message);
-    }
+    static showSuccess = (message) => App.showModal("success", message);
+    static showError = (message) => App.showModal("error", message);
 
-    static showError(message) {
-      App.showModal("error", message);
-    }
+    // === EVENT HANDLERS ===
 
-    // static showForbidden(page){
-    //     const mainContainer = document.getElementById("site-main-content");
-    //     mainContainer.innerHTML = `<h2>${page}</h2><p>Vous devez être enregistré et loggé pour accéder à ce contenu</p>`;
-    // }
-
+    /**
+     * Initializes all event listeners
+     */
     static setEventListeners() {
-      console.log("Initialisation des EventListeners...");
-
-      // Modal
-      const modalCloseButton = document.querySelector(".fermer");
-      if (modalCloseButton) {
-        modalCloseButton.addEventListener("click", () => {
-          App.toggleModal(App.modal);
-        });
+      // Initialisation des écouteurs d'événements
+      const closeModalBtn = document.querySelector(".fermer");
+      if (closeModalBtn) {
+        closeModalBtn.addEventListener("click", () =>
+          App.toggleModal(App.modal)
+        );
       }
-      window.addEventListener("click", (e) => {
+
+      // Fermer la modale en cliquant sur le fond
+      document.addEventListener("click", (e) => {
         if (e.target === App.modal) {
           App.toggleModal(App.modal);
         }
       });
 
-      // Navigation mobile
-      const toggleButton = document.getElementById("nav-toggle");
-      const nav = document.getElementById("site-top-nav");
-      if (toggleButton && nav) {
-        toggleButton.addEventListener("click", function () {
-          nav.classList.toggle("show");
-          toggleButton.classList.toggle("reverse");
+      // Basculer la navigation mobile
+      const navToggle = document.getElementById("nav-toggle");
+      if (navToggle) {
+        navToggle.addEventListener("click", () => {
+          const topNav = document.getElementById("site-top-nav");
+          topNav?.classList.toggle("show");
+          navToggle.classList.toggle("reverse");
           App.adjustMainContainer();
         });
       }
 
-      // Navigation générale
-      document.querySelectorAll("#site-top-nav > ul > li").forEach((elem) => {
-        elem.addEventListener("click", () => {
-          const route = elem.dataset.url;
-          if (route) App.handleRequest(route);
+      // Liens de navigation principale
+      document.querySelectorAll("#site-top-nav > ul > li").forEach((item) => {
+        item.addEventListener("click", () => {
+          const url = item.dataset.url;
+          if (url) RequestHandler.handleRequest(url);
         });
       });
 
-      // Modification ou Suppression d'éléments de données dans une table ou card html
-      App.mainContainer.addEventListener("click", (event) => {
-        const target = event.target;
-        const table = target.closest("table");
-        const card = target.closest(".card");
-
-        if (table) App.handleTableClick(table, target);
-      });
-
-      // App
-      //Searchbar
-      App.mainContainer.addEventListener("input", (event) => {
-        const searchBar = event.target;
-        const searchValue = searchBar.closest("input");
-        const btnActive = document.querySelector(".filter-btn.active");
-
-        if (searchValue.value != null && btnActive != undefined) {
-          App.displayChampions(btnActive.dataset.role, searchValue.value);
-        } else if (searchValue.value != null) {
-          App.displayChampions(undefined, searchValue.value);
+      // Écouteur délégué pour recherche et filtres
+      const main = App.mainContainer;
+      main.addEventListener("input", (e) => {
+        if (e.target.matches("#search-bar")) {
+          const role =
+            document.querySelector(".filter-btn.active")?.dataset.role;
+          App.displayChampions(role, e.target.value);
         }
       });
-      // FilterBar
-      App.mainContainer.addEventListener("click", (event) => {
-        let btn = event.target.closest(".filter-btn"); // Vérifie si un bouton est cliqué
-        if (!btn) return; // Ignore l'événement si ce n'est pas un bouton
-
-        let selectedRole = btn.dataset.role;
-        let activeBtn = document.querySelector(".filter-btn.active");
-        let searchBar = document.getElementById("search-bar");
-        let searchValue = searchBar.value;
-
-        // Si on reclique sur le bouton actif, on affiche "All"
-        if (activeBtn === btn) {
-          App.displayChampions(undefined, searchValue);
-          activeBtn.classList.remove("active"); // Désactive le bouton actif
-          return; // On arrête l'exécution ici
+      main.addEventListener("click", (e) => {
+        // Filtre par rôle
+        const filterBtn = e.target.closest(".filter-btn");
+        if (filterBtn) {
+          const active = document.querySelector(".filter-btn.active");
+          const searchVal = document.getElementById("search-bar")?.value || "";
+          if (active === filterBtn) {
+            active.classList.remove("active");
+            App.displayChampions(undefined, searchVal);
+          } else {
+            active?.classList.remove("active");
+            filterBtn.classList.add("active");
+            App.displayChampions(filterBtn.dataset.role, searchVal);
+          }
+          return;
         }
 
-        // Sinon, on applique le filtre normal
-        App.displayChampions(selectedRole, searchValue);
+        // Sélection d'un champion pour détails
+        const championEl = e.target.closest(".champion");
+        if (championEl) {
+          App.displayChampionsInfo(championEl.dataset.championId);
+          return;
+        }
 
-        // Supprime l'ancienne classe "active" et l'ajoute au bouton sélectionné
-        if (activeBtn) activeBtn.classList.remove("active");
-        btn.classList.add("active");
+        console.log("Clicked:", e.target);
+        // Tri A-Z / Z-A
+        if (e.target.id === "tri-button") {
+          const btn = e.target;
+          const asc = btn.dataset.asc !== "false";
+          btn.dataset.asc = !asc;
+          btn.textContent = asc ? "Sort Z-A" : "Sort A-Z";
+          App.updateFavouriteList();
+          return;
+        }
       });
 
-      // InfoContainer Click
-      App.mainContainer.addEventListener("click", (event) => {
-        const el = event.target.closest(".champion");
-        if (!el) return;
-        App.displayChampionsInfo(el.dataset.championId);
+      // Vider tous les favoris
+      const clearFavBtn = document.querySelector("#clear-favourites");
+      if (clearFavBtn) {
+        clearFavBtn.addEventListener("click", async () => {
+          const list = await FavoriteService.getAll();
+          for (const champ of list) {
+            await FavoriteService.remove(champ);
+          }
+          App.updateFavouriteList();
+        });
+      }
+
+      // Double-clic sur un champion : auto-ajout aux favoris
+      main.addEventListener("dblclick", (e) => {
+        const champEl = e.target.closest(".champion");
+        if (champEl) {
+          const champId = champEl.dataset.championId;
+          const champ = Object.values(App.champions || {}).find(
+            (c) => String(c.id) === String(champId)
+          );
+          if (champ) {
+            FavoriteService.add(champ).then(() => App.updateFavouriteList());
+          }
+        }
       });
 
-      // Tri
-      App.mainContainer.addEventListener("click", (e) => {
-        if (e.target.id === "tri-button") App.toggleSort();
+      // Liens qui forcent un rechargement complet
+      document.body.addEventListener("click", (e) => {
+        const navElem = e.target.closest(".nav-element.no-ajax");
+        if (navElem?.dataset.url) {
+          window.location.href = navElem.dataset.url;
+        }
       });
     }
 
+    // === INITIALIZATION ===
+
+    /**
+     * Initializes the application
+     */
     static init() {
-      console.log("Initialisation de l'App...");
+      console.log("Initializing application...");
       App.mainContainer = document.getElementById("site-main-content");
       App.modal = document.getElementById("modal-message");
-      // const route = location.hash ? location.hash : "/home/index";
-      // App.handleRequest(route);
       App.setEventListeners();
-
-      // App.adjustMainContainer();
     }
 
+    /**
+     * Adjusts main container positioning
+     */
     static adjustMainContainer() {
       const header = document.getElementById("site-header");
-      const mainContainer = document.getElementById("site-main-content");
-      if (header && mainContainer) {
-        const headerHeight = header.offsetHeight;
-        mainContainer.style.marginTop = headerHeight + 16 + "px";
+      if (header && App.mainContainer) {
+        App.mainContainer.style.marginTop = `${header.offsetHeight + 16}px`;
       }
     }
   }
 
+  // Initialize when DOM is ready
   document.addEventListener("DOMContentLoaded", App.init);
-
   return App;
 })();
 
-const FavoriteService = {
+// === FAVORITES SERVICE ===
+export const FavoriteService = {
   STORAGE_KEY: "favouriteChampions",
   USER_KEY: "loggedinUser",
 
+  /**
+   * Gets current user from server
+   * @return {Promise<Object|null>} - User object or null
+   */
   getUser: async () => {
     const res = await fetch("/auth", { credentials: "include" });
-    if (!res.ok) return null;
-    const { user } = await res.json();
-
-    return user;
+    return res.ok ? (await res.json()).user : null;
   },
 
+  /**
+   * Gets all favorite champions
+   * @return {Promise<Array>} - Array of favorites
+   */
   getAll: async () => {
     const user = await FavoriteService.getUser();
-    return (await user?.favourites) || [];
+    return user?.favourites || [];
   },
 
+  /**
+   * Adds champion to favorites
+   * @param {Object} champ - Champion to add
+   * @return {Promise<boolean>} - Success status
+   */
   add: async (champ) => {
-    // ① Call your new POST /profil/favourites/:championId
     const response = await fetch(`/auth/${encodeURIComponent(champ.id)}`, {
       method: "POST",
       credentials: "include",
-      headers: {
-        "X-Requested-With": "XMLHttpRequest",
-      },
+      headers: { "X-Requested-With": "XMLHttpRequest" },
     });
-    if (!response.ok) {
-      console.error("Error adding favourite:", response.statusText);
-      return false;
-    }
-
-    return true;
+    if (!response.ok)
+      console.error("Add favorite failed:", response.statusText);
+    return response.ok;
   },
 
+  /**
+   * Removes champion from favorites
+   * @param {Object} champ - Champion to remove
+   * @return {Promise<boolean>} - Success status
+   */
   remove: async (champ) => {
-    // ① Call your new POST /profil/favourites/:championId
     const response = await fetch(`/auth/${encodeURIComponent(champ.id)}`, {
       method: "DELETE",
       credentials: "include",
-      headers: {
-        "X-Requested-With": "XMLHttpRequest",
-      },
+      headers: { "X-Requested-With": "XMLHttpRequest" },
     });
-    if (!response.ok) {
-      console.error("Error adding favourite:", response.statusText);
-      return false;
-    }
-
-    return true;
+    if (!response.ok)
+      console.error("Remove favorite failed:", response.statusText);
+    return response.ok;
   },
 
+  /**
+   * Checks if champion is favorited
+   * @param {string} id - Champion ID
+   * @return {Promise<boolean>} - Favorite status
+   */
   isFav: async (id) => {
     const list = await FavoriteService.getAll();
     return list.some((c) => c.id === String(id));

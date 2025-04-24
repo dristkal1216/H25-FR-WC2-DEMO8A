@@ -1,31 +1,36 @@
-import express from 'express';
-import ContactIndexView from '#views/contact/index.js';
-import SharedLayoutView from '#views/shared/layout.js';
+import express from "express";
+import ContactIndexView from "#views/contact/index.js";
+import { renderWithLayout } from "#views/shared/renderWithLayout.js";
 
 const router = express.Router();
 
-router.get(['/', '/index'], async (req, res, next) => {
-    const pageContent = new ContactIndexView().render();
-
-    if (req.get('X-Requested-With') === 'XMLHttpRequest') {
-        return res.send(pageContent);
-    }
-
-    const fullPage = new SharedLayoutView(pageContent,req.locals.user).render();
-    res.send(fullPage);
+/**
+ * Affiche le formulaire de contact ou renvoie son fragment HTML.
+ */
+router.get(["/", "/index"], async (req, res, next) => {
+  try {
+    await renderWithLayout(req, res, ContactIndexView);
+  } catch (err) {
+    next(err);
+  }
 });
 
-
-router.post(['/', '/index'], async (req, res, next) => {
-    // récupère les champs email et message
+/**
+ * Reçoit les données du formulaire, loggue email et message,
+ * puis ré-affiche le formulaire (AJAX ou page complète).
+ */
+router.post(["/", "/index"], async (req, res, next) => {
+  try {
     const { email, message } = req.body;
     console.log("email =", email);
     console.log("message =", message);
-    const pageContent = new ContactIndexView().render();
-  
-    const fullPage = new SharedLayoutView(pageContent,req.locals.user).render();
-    res.send(fullPage);
-  });
-  
+
+    // ici on pourrait valider et envoyer un mail, enregistrer, etc.
+
+    await renderWithLayout(req, res, ContactIndexView);
+  } catch (err) {
+    next(err);
+  }
+});
 
 export default router;

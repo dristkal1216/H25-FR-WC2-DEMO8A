@@ -12,9 +12,6 @@ class AccueilIndexView extends View {
   constructor() {
     super(AccueilIndexView.template);
   }
-
-
-  
 }
 
 export default AccueilIndexView;

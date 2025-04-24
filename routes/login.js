@@ -1,37 +1,44 @@
 import express from "express";
 import { usersStore } from "#core/data-stores/index.js";
+import { renderWithLayout } from "#views/shared/renderWithLayout.js";
 import LoginIndexView from "#views/login/index.js";
-import SharedLayoutView from "#views/shared/layout.js";
-import ProfileView from "#views/profil/index.js";
 
 const router = express.Router();
 
-// GET /login → show login form (with optional flash error)
-router.get(["/", "/view", "/view/index"], (req, res) => {
-  const error = req.session.error;
-  delete req.session.error;
+/**
+ * Affiche le formulaire de connexion (ou son fragment AJAX),
+ * en passant un éventuel message d’erreur.
+ */
+router.get(["/", "/view", "/view/index"], async (req, res, next) => {
+  try {
+    // on récupère et vide le message d’erreur en session
+    const error = req.session.error;
+    delete req.session.error;
 
-  const pageContent = new LoginIndexView({ error }).render();
-
-  if (req.xhr) return res.send(pageContent);
-
-  res.send(
-    new SharedLayoutView(pageContent, req.session.user || null).render()
-  );
+    // on affiche soit le fragment, soit la page complète
+    await renderWithLayout(req, res, LoginIndexView, { error });
+  } catch (err) {
+    next(err);
+  }
 });
 
-// POST /login → process login form
+/**
+ * Traite le POST du formulaire de connexion.
+ * - en cas d’erreur d’input ou d’authentification, on stocke le message
+ *   en session et on redirige vers GET /login
+ * - en cas de succès, on régénère la session et on redirige vers /profil
+ */
 router.post(["/", "/view", "/view/index"], async (req, res, next) => {
   try {
     const { username, password } = req.body;
 
-    // 1️⃣ Validate input
+    // validation basique
     if (!username?.trim() || !password) {
       req.session.error = "Veuillez saisir nom d’utilisateur et mot de passe.";
       return res.redirect("/login");
     }
 
-    // 2️⃣ Find user
+    // recherche de l’utilisateur
     const users = await usersStore.read();
     const found = users.find((u) => u.username === username.trim());
 
@@ -40,11 +47,11 @@ router.post(["/", "/view", "/view/index"], async (req, res, next) => {
       return res.redirect("/login");
     }
 
-    // 3️⃣ Regenerate session to prevent fixation
+    // prévention fixation de session
     req.session.regenerate((err) => {
       if (err) return next(err);
 
-      // 4️⃣ Store only required data in session
+      // on ne stocke que l’essentiel
       req.session.user = {
         id: found.id,
         username: found.username,
@@ -52,23 +59,12 @@ router.post(["/", "/view", "/view/index"], async (req, res, next) => {
         avatar: found.avatar || "",
         favourites: found.favourites || [],
       };
-
       delete req.session.error;
 
-      console.log("Session user:", found);
-
-      // 5️⃣ Render profile view with full user info (not just session)
-      const pageContent = new ProfileView(found).render();
-
-      // 6️⃣ Save session and return full layout
+      // on sauvegarde la session avant la redirection
       req.session.save((err) => {
         if (err) return next(err);
-
-        const fullPage = new SharedLayoutView(
-          pageContent,
-          req.session.user
-        ).render();
-        res.send(fullPage);
+        res.redirect("/profil");
       });
     });
   } catch (err) {

@@ -6,6 +6,7 @@ class SharedHeaderView extends View {
       <h3>Favourite Champions</h3>
       <ul id="favourite-list"></ul>
       <button id="clear-favourites">Clear All</button>
+      <button id="tri-button">Sort</button>
     </aside>
   `;
 

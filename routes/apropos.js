@@ -1,18 +1,17 @@
-import express from 'express';
-import AproposIndexView from '#views/apropos/index.js';
-import SharedLayoutView from '#views/shared/layout.js';
+import express from "express";
+import AproposIndexView from "#views/apropos/index.js";
+import { renderWithLayout } from "#views/shared/renderWithLayout.js";
 
 const router = express.Router();
 
-router.get(['/', '/index'], async(req, res, next) => {
-    const pageContent = new AproposIndexView().render();
-
-    if (req.get('X-Requested-With') === 'XMLHttpRequest') {
-        return res.send(pageContent);
-    }
-    
-    const fullPage = new SharedLayoutView(pageContent,req.locals.user).render();
-    res.send(fullPage);  
+router.get(["/", "/index"], async (req, res, next) => {
+  try {
+    // renderWithLayout se charge de renvoyer
+    // soit le fragment (XHR), soit la page complète
+    await renderWithLayout(req, res, AproposIndexView);
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default router;
